@@ -1,2 +1,2 @@
-# sistema-ponto-smsrio
+# REPOSITÓRIO SUBG-SMS
 
