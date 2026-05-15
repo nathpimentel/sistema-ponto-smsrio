@@ -1,3 +1,5 @@
+import toast from "react-hot-toast";
+
 import { useState } from "react";
 
 import { useNavigate } from "react-router-dom";
@@ -22,6 +24,12 @@ export default function Register() {
 
   const forcaSenha =
   verificarForcaSenha(senha);
+
+  const [mostrarSenha, setMostrarSenha] =
+  useState(false);
+
+  const [unidade, setUnidade] =
+  useState("");
 
   
 
@@ -50,8 +58,8 @@ if (
   !temEspecial
 ) {
 
-  alert(
-    "A senha não atende os requisitos mínimos"
+  toast.error(
+  "A senha não atende os requisitos mínimos"
   );
 
   return;
@@ -65,25 +73,38 @@ if (
     nome,
     email,
     senhaHash: senha,
-    tipoUsuario
+    tipoUsuario,
+    unidade
   }
 );
 
-      alert(
-        "Cadastro enviado para aprovação"
-      );
+      toast.success(
+  "Cadastro enviado para aprovação"
+);
 
       navigate("/");
 
     } catch {
 
-      alert("Erro ao registrar");
+      toast.error(
+  "Erro ao registrar");
     }
+
+    if (!unidade) {
+
+  toast.error(
+    "Selecione uma unidade"
+  );
+
+  return;
+}
   }
 
   function verificarForcaSenha(
   senha: string
 ) {
+
+  let pontos = 0;
 
   const temNumero =
     /\d/.test(senha);
@@ -96,31 +117,36 @@ if (
   const tamanho =
     senha.length >= 6;
 
-  if (
-    tamanho &&
-    temNumero &&
-    temEspecial &&
-    senha.length >= 10
-  ) {
+  if (tamanho) pontos++;
+
+  if (temNumero) pontos++;
+
+  if (temEspecial) pontos++;
+
+  if (senha.length >= 10) pontos++;
+
+  if (pontos <= 1) {
+
     return {
-      texto: "Senha forte",
-      cor: "text-green-600"
+      texto: "Senha fraca",
+      cor: "bg-red-500",
+      largura: "25%"
     };
   }
 
-  if (
-    tamanho &&
-    (temNumero || temEspecial)
-  ) {
+  if (pontos <= 3) {
+
     return {
       texto: "Senha média",
-      cor: "text-yellow-600"
+      cor: "bg-yellow-500",
+      largura: "65%"
     };
   }
 
   return {
-    texto: "Senha fraca",
-    cor: "text-red-600"
+    texto: "Senha forte",
+    cor: "bg-green-500",
+    largura: "100%"
   };
 }
 
@@ -171,41 +197,97 @@ if (
   Senha
 </p>
 
-        <input
-          type="password"
-          placeholder="Digite sua senha"
-          className="w-full border p-3 rounded-lg mb-6"
-          value={senha}
-          onChange={(e) =>
-            setSenha(e.target.value)
-          }
-        />
+<div className="relative mb-2">
 
-        <div className="mb-4">
+  <input
+    type={
+      mostrarSenha
+        ? "text"
+        : "password"
+    }
+    placeholder="Digite sua senha"
+    className="w-full border p-3 rounded-lg pr-14"
+    value={senha}
+    onChange={(e) =>
+      setSenha(e.target.value)
+    }
+  />
 
-  <p className={`text-sm font-semibold ${forcaSenha.cor}`}>
-
-    {forcaSenha.texto}
-
-  </p>
-
-  <ul className="text-sm text-gray-600 mt-2 list-disc pl-5">
-
-    <li>
-      Mínimo de 6 caracteres
-    </li>
-
-    <li>
-      Pelo menos 1 número
-    </li>
-
-    <li>
-      Pelo menos 1 caractere especial
-    </li>
-
-  </ul>
+  <button
+    type="button"
+    onClick={() =>
+      setMostrarSenha(!mostrarSenha)
+    }
+    className="absolute right-3 top-3 text-gray-500"
+  >
+    {
+      mostrarSenha
+        ? "🙈"
+        : "👁"
+    }
+  </button>
 
 </div>
+
+        {
+  senha.length > 0 && (
+
+    <div className="mb-6">
+
+      <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+
+        <div
+          className={`h-3 transition-all duration-500 ${forcaSenha.cor}`}
+          style={{
+            width: forcaSenha.largura
+          }}
+        />
+
+      </div>
+
+      <p className="text-sm mt-2 font-semibold text-gray-700">
+
+        {forcaSenha.texto}
+
+      </p>
+
+      <div className="mt-3 space-y-2">
+
+        <p
+          className={`text-sm ${
+            senha.length >= 6
+              ? "text-green-600"
+              : "text-gray-500"
+          }`}
+        >
+          ✓ Mínimo de 6 caracteres
+        </p>
+
+        <p
+          className={`text-sm ${
+            /\d/.test(senha)
+              ? "text-green-600"
+              : "text-gray-500"
+          }`}
+        >
+          ✓ Pelo menos 1 número
+        </p>
+
+        <p
+          className={`text-sm ${
+            /[!@#$%^&*(),.?":{}|<>]/.test(senha)
+              ? "text-green-600"
+              : "text-gray-500"
+          }`}
+        >
+          ✓ Pelo menos 1 caractere especial
+        </p>
+
+      </div>
+
+    </div>
+  )
+}
 
 <div className="mb-6">
 
@@ -246,6 +328,44 @@ if (
     </button>
 
   </div>
+
+  <div className="mb-6">
+
+  <p className="text-sm text-gray-600 mb-2">
+    Unidade
+  </p>
+
+  <select
+    className="w-full border p-3 rounded-lg"
+    value={unidade}
+    onChange={(e) =>
+      setUnidade(e.target.value)
+    }
+  >
+
+    <option value="">
+      Selecione uma Unidade/Orgão
+    </option>
+
+    <option value="SMS-RIO">
+      SMS-RIO
+    </option>
+
+    <option value="RH">
+      RH
+    </option>
+
+    <option value="TI">
+      TI
+    </option>
+
+    <option value="Administrativo">
+      Administrativo
+    </option>
+
+  </select>
+
+</div>
 
 </div>
 

@@ -5,18 +5,25 @@
 namespace backend.Migrations
 {
     /// <inheritdoc />
-    public partial class AddAprovadoUsuario : Migration
+    public partial class AddUnidadeUsuario : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-
+            migrationBuilder.AddColumn<string>(
+                name: "Unidade",
+                table: "Users",
+                type: "text",
+                nullable: false,
+                defaultValue: "");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-
+            migrationBuilder.DropColumn(
+                name: "Unidade",
+                table: "Users");
         }
     }
 }

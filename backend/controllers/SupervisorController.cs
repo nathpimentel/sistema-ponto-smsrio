@@ -21,6 +21,25 @@ public class SupervisorController : ControllerBase
         _pdfService = pdfService;
     }
 
+    [Authorize(Roles = "Supervisor")]
+[HttpGet("usuarios")]
+public IActionResult Usuarios()
+{
+    var usuarios = _context.Users
+        .Select(u => new
+        {
+            u.Id,
+            u.Nome,
+            u.Email,
+            u.TipoUsuario,
+            u.Unidade,
+            u.Aprovado
+        })
+        .ToList();
+
+    return Ok(usuarios);
+}
+
 
     [Authorize(Roles = "Supervisor")]
     [HttpGet("registros")]
@@ -96,9 +115,7 @@ public IActionResult AprovarUsuario(int id)
 
     _context.SaveChanges();
 
-    return Ok(
-        "Usuário aprovado"
-    );
+    return Ok();
 }
 
 [Authorize(Roles = "Supervisor")]
@@ -333,6 +350,53 @@ var pdf = _pdfService.GerarRelatorio(
 
         }
 
+
+[Authorize(Roles = "Supervisor")]
+[HttpPut("desativar/{id}")]
+public IActionResult DesativarUsuario(int id)
+{
+    var user = _context.Users
+        .FirstOrDefault(u => u.Id == id);
+
+    if (user == null)
+    {
+        return NotFound();
+    }
+
+    user.Aprovado = false;
+
+    _context.SaveChanges();
+
+    return Ok();
+}
+
+[Authorize(Roles = "Supervisor")]
+[HttpDelete("excluir/{id}")]
+public IActionResult ExcluirUsuario(int id)
+{
+    var user = _context.Users
+        .FirstOrDefault(u => u.Id == id);
+
+    if (user == null)
+    {
+        return NotFound();
+    }
+
+    var registros = _context.RegistrosPonto
+        .Where(r => r.UserId == id)
+        .ToList();
+
+    _context.RegistrosPonto.RemoveRange(registros);
+
+    _context.Users.Remove(user);
+
+    _context.SaveChanges();
+
+    return Ok(new
+    {
+        mensagem = "Usuário excluído"
+    });
+}
 
         [Authorize(Roles = "Supervisor")]
         [HttpGet("relatorio-mensal/{userId}")]

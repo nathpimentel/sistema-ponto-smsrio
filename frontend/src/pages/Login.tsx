@@ -1,3 +1,4 @@
+import logo from "../assets/prefeitura-logo.png";
 import { useState } from "react";
 import {
   Link,
@@ -57,6 +58,16 @@ if (
       alert("Erro ao fazer login");
     }
   }
+
+  <div className="flex justify-center mb-6">
+
+  <img
+    src={logo}
+    alt="Prefeitura"
+    className="w-32"
+  />
+
+</div>
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

@@ -12,8 +12,8 @@ using backend.data;
 namespace backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260515060508_AddAprovadoUsuario")]
-    partial class AddAprovadoUsuario
+    [Migration("20260515074035_AddUnidadeUsuario")]
+    partial class AddUnidadeUsuario
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -63,6 +63,9 @@ namespace backend.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("Aprovado")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
@@ -76,6 +79,10 @@ namespace backend.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("TipoUsuario")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Unidade")
                         .IsRequired()
                         .HasColumnType("text");
 

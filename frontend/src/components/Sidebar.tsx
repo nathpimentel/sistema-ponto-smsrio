@@ -1,3 +1,4 @@
+import logo from "../assets/prefeitura-logo.png";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function Sidebar() {
@@ -12,11 +13,25 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-64 bg-blue-700 text-white min-h-screen p-6">
+    <aside className="w-72 bg-blue-800 text-white min-h-screen p-6">
 
-      <h1 className="text-2xl font-bold mb-10">
-        Sistema Ponto
-      </h1>
+      <div className="mb-10 flex flex-col items-center">
+
+ <div className="bg-white rounded-2xl p-4 mb-6 shadow">
+
+  <img
+    src={logo}
+    alt="Prefeitura"
+    className="w-44 mx-auto"
+  />
+
+</div>
+
+  <h1 className="text-xl font-bold text-center">
+    Sistema de Ponto
+  </h1>
+
+</div>
 
       <nav className="flex flex-col gap-4">
 
@@ -40,6 +55,13 @@ export default function Sidebar() {
         >
           Relatórios
         </Link>
+
+        <Link
+  to="/admin-usuarios"
+  className="hover:bg-blue-600 p-3 rounded-lg"
+>
+  Usuários
+</Link>
 
         <button
           onClick={logout}
