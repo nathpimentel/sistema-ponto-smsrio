@@ -104,10 +104,14 @@ public IActionResult Register(User user)
 
         var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
-        return Ok(new
-        {
-            token = tokenString
-        });
+       return Ok(new
+{
+    token = tokenString,
+
+    tipoUsuario = user.TipoUsuario,
+
+    nome = user.Nome
+});
     }
     
     

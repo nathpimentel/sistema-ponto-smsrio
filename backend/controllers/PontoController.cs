@@ -134,48 +134,109 @@ public class PontoController : ControllerBase
         });
     }
 
-    [Authorize]
+
+[Authorize]
 [HttpGet("meus-registros")]
 public IActionResult MeusRegistros()
 {
-    var email = User.FindFirst(ClaimTypes.Email)?.Value;
+    var email =
+        User.FindFirst(ClaimTypes.Email)?.Value;
 
-    var user = _context.Users.FirstOrDefault(u => u.Email == email);
+    var user = _context.Users
+        .FirstOrDefault(u => u.Email == email);
 
     if (user == null)
     {
         return Unauthorized();
     }
 
-    if (user.TipoUsuario == "Supervisor")
-{
-    return BadRequest(
-        "Supervisor não possui registros de ponto"
-    );
-}
-
     var registros = _context.RegistrosPonto
         .Where(r => r.UserId == user.Id)
         .OrderByDescending(r => r.Data)
         .Select(r => new
         {
-            data = r.Data.ToString("dd/MM/yyyy"),
+            data = r.Data
+                .ToLocalTime()
+                .ToString("dd/MM/yyyy"),
 
             entrada = r.Entrada != null
-                ? r.Entrada.Value.ToLocalTime().ToString("HH:mm")
-                : null,
+                ? r.Entrada.Value
+                    .ToLocalTime()
+                    .ToString("HH:mm")
+                : "",
 
             saida = r.Saida != null
-                ? r.Saida.Value.ToLocalTime().ToString("HH:mm")
-                : null,
+                ? r.Saida.Value
+                    .ToLocalTime()
+                    .ToString("HH:mm")
+                : "",
 
-            tempoTrabalhado =
-                r.Entrada != null && r.Saida != null
+            horas =
+                r.Entrada != null &&
+                r.Saida != null
                     ? $"{(r.Saida.Value - r.Entrada.Value).Hours:D2}:{(r.Saida.Value - r.Entrada.Value).Minutes:D2}"
-                    : null
+                    : "00:00"
         })
         .ToList();
 
     return Ok(registros);
 }
+[Authorize]
+[HttpGet("resumo")]
+public IActionResult Resumo()
+{
+    var email =
+        User.FindFirst(ClaimTypes.Email)?.Value;
+
+    var user = _context.Users
+        .FirstOrDefault(u => u.Email == email);
+
+    if (user == null)
+    {
+        return Unauthorized();
+    }
+
+    var hoje = DateTime.UtcNow;
+
+    var registros = _context.RegistrosPonto
+        .Where(r =>
+            r.UserId == user.Id &&
+            r.Data.Month == hoje.Month &&
+            r.Data.Year == hoje.Year
+        )
+        .ToList();
+
+    var totalMinutos = registros
+        .Where(r =>
+            r.Entrada != null &&
+            r.Saida != null
+        )
+        .Sum(r =>
+            (r.Saida!.Value - r.Entrada!.Value)
+            .TotalMinutes
+        );
+
+    var horas = (int)totalMinutos / 60;
+
+    var minutos = (int)totalMinutos % 60;
+
+    var trabalhandoAgora =
+        registros.Any(r =>
+            r.Data.Date == hoje.Date &&
+            r.Entrada != null &&
+            r.Saida == null
+        );
+
+    return Ok(new
+    {
+        totalHoras =
+            $"{horas:D2}:{minutos:D2}",
+
+        totalRegistros =
+            registros.Count,
+
+        trabalhandoAgora
+    });
+}
+
 }

@@ -1,3 +1,5 @@
+import DashboardBolsista
+from "./pages/DashboardBolsista";
 import Registros from "./pages/Registros";
 import {
   Routes,
@@ -17,6 +19,14 @@ export default function App() {
 
   return (
     <Routes>
+      <Route
+  path="/bolsista"
+  element={
+    <PrivateRoute>
+      <DashboardBolsista />
+    </PrivateRoute>
+  }
+/>
 
       <Route
   path="/registros"

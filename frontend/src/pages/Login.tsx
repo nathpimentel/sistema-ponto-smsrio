@@ -22,12 +22,33 @@ export default function Login() {
         senha: senha
       });
 
-      localStorage.setItem(
-        "token",
-        response.data.token
-      );
+localStorage.setItem(
+  "token",
+  response.data.token
+);
 
-      navigate("/dashboard");
+localStorage.setItem(
+  "tipoUsuario",
+  response.data.tipoUsuario
+);
+
+localStorage.setItem(
+  "nome",
+  response.data.nome
+);
+
+if (
+  response.data.tipoUsuario ===
+  "Supervisor"
+) {
+
+  navigate("/dashboard");
+
+} else {
+
+  navigate("/bolsista");
+}
+
     }
     catch {
       alert("Erro ao fazer login");
