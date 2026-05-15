@@ -1,40 +1,88 @@
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import type { IconType } from "react-icons";
+import {
+  GoChevronRight,
+  GoHome,
+  GoPerson,
+  GoSignOut
+} from "react-icons/go";
+
+import logo from "../assets/prefeitura-logo.png";
+
+interface SidebarLink {
+  to: string;
+  label: string;
+  icon: IconType;
+}
+
+const links: SidebarLink[] = [
+  { to: "/bolsista", label: "Meu painel", icon: GoHome },
+  { to: "/bolsista/perfil", label: "Perfil", icon: GoPerson }
+];
 
 export default function SidebarBolsista() {
-
   const navigate = useNavigate();
+  const nome = localStorage.getItem("nome") || "Bolsista";
 
   function logout() {
-
     localStorage.clear();
-
     navigate("/");
   }
 
   return (
-    <aside className="w-64 bg-green-700 text-white min-h-screen p-6">
+    <aside className="sidebar-shell">
+      <div className="sidebar-logo-card">
+        <img
+          src={logo}
+          alt="Prefeitura do Rio Saude"
+          className="w-full"
+        />
+      </div>
 
-      <h1 className="text-2xl font-bold mb-10">
-        Área Bolsista
-      </h1>
+      <div className="mb-8">
+        <p className="text-sm text-white/60">
+          Area do bolsista
+        </p>
+        <h1 className="text-xl font-bold leading-tight">
+          Controle de Ponto
+        </h1>
+        <p className="mt-2 text-sm text-white/70">
+          {nome}
+        </p>
+      </div>
 
-      <nav className="flex flex-col gap-4">
+      <nav className="sidebar-nav">
+        {links.map((link) => {
+          const Icon = link.icon;
 
-        <button
-          className="text-left hover:bg-green-600 p-3 rounded-lg"
-        >
-          Meu Painel
-        </button>
+          return (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) =>
+                `nav-link ${isActive ? "bg-white/10 text-white border-white/20" : ""}`
+              }
+            >
+              <span className="nav-link-label">
+                <Icon aria-hidden="true" />
+                {link.label}
+              </span>
+              <GoChevronRight
+                aria-hidden="true"
+                className="text-white/35"
+              />
+            </NavLink>
+          );
+        })}
 
         <button
           onClick={logout}
-          className="bg-white text-green-700 p-3 rounded-lg mt-8"
+          className="nav-button"
         >
+          <GoSignOut aria-hidden="true" />
           Sair
         </button>
-
       </nav>
-
     </aside>
   );
 }

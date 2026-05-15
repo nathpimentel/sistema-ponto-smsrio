@@ -7,6 +7,30 @@ namespace backend.services;
 
 public class PdfService
 {
+    private static string FormatarHorasLegivel(string? valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+        {
+            return "";
+        }
+
+        var partes = valor.Split(":");
+
+        if (partes.Length < 2)
+        {
+            return valor;
+        }
+
+        var horas = int.TryParse(partes[0], out var horasNumero)
+            ? horasNumero
+            : 0;
+        var minutos = int.TryParse(partes[1], out var minutosNumero)
+            ? minutosNumero
+            : 0;
+
+        return $"{horas}h e {minutos}m";
+    }
+
     public byte[] GerarRelatorio(
     string nome,
     int mes,
@@ -38,7 +62,7 @@ public class PdfService
         .Text($"Mês/Ano: {mes:D2}/{ano}");
 
     column.Item()
-        .Text($"Carga Horária Total: {totalHorasMes}");
+        .Text($"Carga Horária Total: {FormatarHorasLegivel(totalHorasMes)}");
 });
 
 page.Content().Table(table =>
@@ -78,11 +102,11 @@ foreach (dynamic r in registros)
 
     table.Cell().Text((string)r.data);
 
-    table.Cell().Text((string)r.entrada);
+    table.Cell().Text(FormatarHorasLegivel((string)r.entrada));
 
-    table.Cell().Text((string)r.saida);
+    table.Cell().Text(FormatarHorasLegivel((string)r.saida));
 
-    table.Cell().Text((string)r.horasTrabalhadas);
+    table.Cell().Text(FormatarHorasLegivel((string)r.horasTrabalhadas));
 }
 });
 

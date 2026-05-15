@@ -1,5 +1,4 @@
 import React from "react";
-import { Toaster } from "react-hot-toast";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
@@ -13,9 +12,6 @@ ReactDOM.createRoot(
   <React.StrictMode>
     <BrowserRouter>
       <App />
-      <Toaster
-  position="top-right"
-/>
     </BrowserRouter>
   </React.StrictMode>
 );

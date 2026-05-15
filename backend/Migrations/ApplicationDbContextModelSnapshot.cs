@@ -63,6 +63,13 @@ namespace backend.Migrations
                     b.Property<bool>("Aprovado")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("CargaHorariaSemanal")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CursoFaculdade")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");

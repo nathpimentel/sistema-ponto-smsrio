@@ -17,14 +17,42 @@ public class PontoController : ControllerBase
         _context = context;
     }
 
+    private static DateTime HojeLocal =>
+        DateTime.SpecifyKind(DateTime.Now.Date, DateTimeKind.Utc);
+
+    private static string FormatarDuracao(TimeSpan duracao)
+    {
+        var totalMinutos = Math.Max(0, (int)Math.Floor(duracao.TotalMinutes));
+        return $"{totalMinutos / 60:D2}:{totalMinutos % 60:D2}";
+    }
+
+    private User? ObterUsuarioLogado()
+    {
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (int.TryParse(idClaim, out var userId))
+        {
+            return _context.Users.FirstOrDefault(u => u.Id == userId);
+        }
+
+        var email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return null;
+        }
+
+        var emailNormalizado = email.Trim().ToLowerInvariant();
+
+        return _context.Users
+            .FirstOrDefault(u => u.Email.ToLower() == emailNormalizado);
+    }
+
     [Authorize]
     [HttpPost("entrada")]
     public IActionResult BaterEntrada()
     {
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
-
-        var user = _context.Users.FirstOrDefault(u => u.Email == email);
-
+        var user = ObterUsuarioLogado();
 
         if (user == null)
         {
@@ -38,7 +66,18 @@ public class PontoController : ControllerBase
         );
     }
 
-        var hoje = DateTime.UtcNow.Date;
+        var hoje = HojeLocal;
+
+        var registroPendente = _context.RegistrosPonto
+            .FirstOrDefault(r =>
+                r.UserId == user.Id &&
+                r.Saida == null
+            );
+
+        if (registroPendente != null)
+        {
+            return BadRequest("Existe uma entrada pendente para registrar saída");
+        }
 
         var registroExistente = _context.RegistrosPonto
             .FirstOrDefault(r =>
@@ -73,9 +112,7 @@ public class PontoController : ControllerBase
     [HttpPost("saida")]
     public IActionResult BaterSaida()
     {
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
-
-        var user = _context.Users.FirstOrDefault(u => u.Email == email);
+        var user = ObterUsuarioLogado();
 
         if (user == null)
         {
@@ -89,13 +126,22 @@ public class PontoController : ControllerBase
         );
     }
 
-        var hoje = DateTime.UtcNow.Date;
+        var hoje = HojeLocal;
 
-        var registro = _context.RegistrosPonto
-    .FirstOrDefault(r =>
-        r.UserId == user.Id &&
-        r.Saida == null
-    );
+        var registroPendente = _context.RegistrosPonto
+            .FirstOrDefault(r =>
+                r.UserId == user.Id &&
+                r.Saida == null
+            );
+
+        if (registroPendente != null && registroPendente.Data.Date != hoje)
+        {
+            return BadRequest(
+                "Existe uma entrada pendente de outro dia. Procure o supervisor"
+            );
+        }
+
+        var registro = registroPendente;
 
                 if (registro == null)
         {
@@ -129,7 +175,7 @@ public class PontoController : ControllerBase
             saida = registro.Saida?.ToLocalTime(),
 
             tempoTrabalhado = registro.Entrada != null && registro.Saida != null
-    ? (registro.Saida.Value - registro.Entrada.Value).ToString(@"hh\:mm")
+    ? FormatarDuracao(registro.Saida.Value - registro.Entrada.Value)
     : null
         });
     }
@@ -139,11 +185,7 @@ public class PontoController : ControllerBase
 [HttpGet("meus-registros")]
 public IActionResult MeusRegistros()
 {
-    var email =
-        User.FindFirst(ClaimTypes.Email)?.Value;
-
-    var user = _context.Users
-        .FirstOrDefault(u => u.Email == email);
+    var user = ObterUsuarioLogado();
 
     if (user == null)
     {
@@ -156,7 +198,6 @@ public IActionResult MeusRegistros()
         .Select(r => new
         {
             data = r.Data
-                .ToLocalTime()
                 .ToString("dd/MM/yyyy"),
 
             entrada = r.Entrada != null
@@ -174,7 +215,7 @@ public IActionResult MeusRegistros()
             horas =
                 r.Entrada != null &&
                 r.Saida != null
-                    ? $"{(r.Saida.Value - r.Entrada.Value).Hours:D2}:{(r.Saida.Value - r.Entrada.Value).Minutes:D2}"
+                    ? FormatarDuracao(r.Saida.Value - r.Entrada.Value)
                     : "00:00"
         })
         .ToList();
@@ -185,18 +226,14 @@ public IActionResult MeusRegistros()
 [HttpGet("resumo")]
 public IActionResult Resumo()
 {
-    var email =
-        User.FindFirst(ClaimTypes.Email)?.Value;
-
-    var user = _context.Users
-        .FirstOrDefault(u => u.Email == email);
+    var user = ObterUsuarioLogado();
 
     if (user == null)
     {
         return Unauthorized();
     }
 
-    var hoje = DateTime.UtcNow;
+    var hoje = HojeLocal;
 
     var registros = _context.RegistrosPonto
         .Where(r =>
@@ -220,12 +257,14 @@ public IActionResult Resumo()
 
     var minutos = (int)totalMinutos % 60;
 
-    var trabalhandoAgora =
-        registros.Any(r =>
+    var registroAberto =
+        registros.FirstOrDefault(r =>
             r.Data.Date == hoje.Date &&
             r.Entrada != null &&
             r.Saida == null
         );
+
+    var trabalhandoAgora = registroAberto != null;
 
     return Ok(new
     {
@@ -235,7 +274,12 @@ public IActionResult Resumo()
         totalRegistros =
             registros.Count,
 
-        trabalhandoAgora
+        trabalhandoAgora,
+
+        inicioExpediente =
+            registroAberto?.Entrada != null
+                ? registroAberto.Entrada.Value.ToLocalTime().ToString("yyyy-MM-ddTHH:mm:ss")
+                : null
     });
 }
 

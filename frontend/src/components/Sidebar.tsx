@@ -1,77 +1,94 @@
+import { NavLink, useNavigate } from "react-router-dom";
+import type { IconType } from "react-icons";
+import {
+  GoChevronRight,
+  GoClock,
+  GoFile,
+  GoHome,
+  GoPeople,
+  GoPerson,
+  GoSignOut
+} from "react-icons/go";
+
 import logo from "../assets/prefeitura-logo.png";
-import { Link, useNavigate } from "react-router-dom";
+
+interface SidebarLink {
+  to: string;
+  label: string;
+  icon: IconType;
+}
+
+const links: SidebarLink[] = [
+  { to: "/dashboard", label: "Visao geral", icon: GoHome },
+  { to: "/registros", label: "Registros de ponto", icon: GoClock },
+  { to: "/relatorios", label: "Relatorios", icon: GoFile },
+  { to: "/admin-usuarios", label: "Usuarios", icon: GoPeople },
+  { to: "/perfil", label: "Perfil", icon: GoPerson }
+];
 
 export default function Sidebar() {
-
   const navigate = useNavigate();
+  const nome = localStorage.getItem("nome") || "Supervisor";
 
   function logout() {
-
-    localStorage.removeItem("token");
-
+    localStorage.clear();
     navigate("/");
   }
 
   return (
-    <aside className="w-72 bg-blue-800 text-white min-h-screen p-6">
+    <aside className="sidebar-shell">
+      <div className="sidebar-logo-card">
+        <img
+          src={logo}
+          alt="Prefeitura do Rio Saude"
+          className="w-full"
+        />
+      </div>
 
-      <div className="mb-10 flex flex-col items-center">
+      <div className="mb-8">
+        <p className="text-sm text-white/60">
+          Supervisao
+        </p>
+        <h1 className="text-xl font-bold leading-tight">
+          Sistema de Ponto
+        </h1>
+        <p className="mt-2 text-sm text-white/70">
+          {nome}
+        </p>
+      </div>
 
- <div className="bg-white rounded-2xl p-4 mb-6 shadow">
+      <nav className="sidebar-nav">
+        {links.map((link) => {
+          const Icon = link.icon;
 
-  <img
-    src={logo}
-    alt="Prefeitura"
-    className="w-44 mx-auto"
-  />
-
-</div>
-
-  <h1 className="text-xl font-bold text-center">
-    Sistema de Ponto
-  </h1>
-
-</div>
-
-      <nav className="flex flex-col gap-4">
-
-        <Link
-  to="/dashboard"
-  className="hover:bg-blue-600 p-3 rounded-lg"
->
-  Página Inicial
-</Link>
-
-<Link
-  to="/registros"
-  className="hover:bg-blue-600 p-3 rounded-lg"
->
-  Registros
-</Link>
-
-        <Link
-          to="/relatorios"
-          className="hover:bg-blue-600 p-3 rounded-lg"
-        >
-          Relatórios
-        </Link>
-
-        <Link
-  to="/admin-usuarios"
-  className="hover:bg-blue-600 p-3 rounded-lg"
->
-  Usuários
-</Link>
+          return (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) =>
+                `nav-link ${isActive ? "bg-white/10 text-white border-white/20" : ""}`
+              }
+            >
+              <span className="nav-link-label">
+                <Icon aria-hidden="true" />
+                {link.label}
+              </span>
+              <GoChevronRight
+                aria-hidden="true"
+                className="text-white/35"
+              />
+            </NavLink>
+          );
+        })}
 
         <button
           onClick={logout}
-          className="bg-white text-blue-700 p-3 rounded-lg mt-8"
+          className="nav-button"
         >
+          <GoSignOut aria-hidden="true" />
           Sair
         </button>
-
       </nav>
-
     </aside>
   );
 }

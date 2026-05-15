@@ -1,16 +1,19 @@
-import toast from "react-hot-toast";
-
-
+import axios from "axios";
 import {
   useEffect,
   useState
 } from "react";
+import toast from "react-hot-toast";
+import {
+  GoPerson,
+  GoSignIn,
+  GoSignOut
+} from "react-icons/go";
+import { Link } from "react-router-dom";
 
-
-import SidebarBolsista
-from "../components/SidebarBolsista";
-
+import SidebarBolsista from "../components/SidebarBolsista";
 import api from "../services/api";
+import { formatarHorasMinutos } from "../utils/formatarHoras";
 
 interface Registro {
   data: string;
@@ -23,312 +26,332 @@ interface Resumo {
   totalHoras: string;
   totalRegistros: number;
   trabalhandoAgora: boolean;
+  inicioExpediente?: string | null;
+}
+
+function mensagemErroPadrao(
+  error: unknown,
+  fallback: string
+) {
+  if (
+    axios.isAxiosError(error) &&
+    typeof error.response?.data === "string"
+  ) {
+    return error.response.data;
+  }
+
+  return fallback;
 }
 
 export default function DashboardBolsista() {
+  const nome = localStorage.getItem("nome") || "Bolsista";
+  const [registros, setRegistros] = useState<Registro[]>([]);
+  const [resumo, setResumo] = useState<Resumo>({
+    totalHoras: "00:00",
+    totalRegistros: 0,
+    trabalhandoAgora: false,
+    inicioExpediente: null
+  });
+  const [agora, setAgora] = useState(() => new Date());
 
-  const nome =
-    localStorage.getItem("nome");
-
-  const [registros, setRegistros] =
-    useState<Registro[]>([]);
-
-  const [resumo, setResumo] =
-    useState<Resumo>({
-      totalHoras: "00:00",
-      totalRegistros: 0,
-      trabalhandoAgora: false
-    });
-
-async function baterEntrada() {
-
-  try {
-
-    await api.post(
-      "/ponto/entrada",
-      {},
-      {
-        headers: {
-          Authorization:
-            `Bearer ${localStorage.getItem("token")}`
-        }
-      }
-    );
-
-    toast.success("Entrada registrada");
-
-    carregarHistorico();
-
-    carregarResumo();
-
-  } catch {
-
-    toast.error("Erro ao registrar entrada");
+  async function baterEntrada() {
+    try {
+      await api.post("/ponto/entrada", {});
+      toast.success("Entrada registrada");
+      carregarHistorico();
+      carregarResumo();
+    } catch (error) {
+      toast.error(
+        mensagemErroPadrao(
+          error,
+          "Erro ao registrar entrada"
+        )
+      );
+    }
   }
-}
 
   async function baterSaida() {
+    try {
+      await api.post("/ponto/saida", {});
+      toast.success("Saida registrada");
+      carregarHistorico();
+      carregarResumo();
+    } catch (error) {
+      toast.error(
+        mensagemErroPadrao(
+          error,
+          "Erro ao registrar saida"
+        )
+      );
+    }
+  }
 
-  try {
+  async function carregarHistorico() {
+    try {
+      const response = await api.get("/ponto/meus-registros");
+      setRegistros(response.data);
+    } catch {
+      toast.error("Erro ao carregar historico");
+    }
+  }
 
-    await api.post(
-      "/ponto/saida",
-      {},
-      {
-        headers: {
-          Authorization:
-            `Bearer ${localStorage.getItem("token")}`
-        }
-      }
-    );
+  async function carregarResumo() {
+    try {
+      const response = await api.get("/ponto/resumo");
+      setResumo(response.data);
+    } catch {
+      toast.error("Erro ao carregar resumo");
+    }
+  }
 
-    toast.success("Saída registrada");
-
+  useEffect(() => {
     carregarHistorico();
-
     carregarResumo();
 
-  } catch {
+    const interval = setInterval(() => {
+      carregarHistorico();
+      carregarResumo();
+    }, 10000);
 
-    toast.error("Erro ao registrar saída");
-  }
-}
+    return () => clearInterval(interval);
+  }, []);
 
- async function carregarHistorico() {
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAgora(new Date());
+    }, 1000);
 
-  try {
+    return () => clearInterval(interval);
+  }, []);
 
-    const response = await api.get(
-      "/ponto/meus-registros",
-      {
-        headers: {
-          Authorization:
-            `Bearer ${localStorage.getItem("token")}`
-        }
-      }
+  function formatarCronometro() {
+    if (!resumo.trabalhandoAgora || !resumo.inicioExpediente) {
+      return "00:00:00";
+    }
+
+    const inicio = new Date(resumo.inicioExpediente);
+    const diferencaSegundos = Math.max(
+      0,
+      Math.floor((agora.getTime() - inicio.getTime()) / 1000)
     );
+    const horas = Math.floor(diferencaSegundos / 3600);
+    const minutos = Math.floor((diferencaSegundos % 3600) / 60);
+    const segundos = diferencaSegundos % 60;
 
-    setRegistros(response.data);
-
-  } catch {
-
-    toast.error("Erro ao carregar histórico");
+    return `${horas.toString().padStart(2, "0")}:${minutos
+      .toString()
+      .padStart(2, "0")}:${segundos.toString().padStart(2, "0")}`;
   }
-}
 
- async function carregarResumo() {
+  function horarioInicioExpediente() {
+    if (!resumo.inicioExpediente) {
+      return "--:--";
+    }
 
-  try {
-
-    const response = await api.get(
-      "/ponto/resumo",
-      {
-        headers: {
-          Authorization:
-            `Bearer ${localStorage.getItem("token")}`
-        }
-      }
-    );
-
-    setResumo(response.data);
-
-  } catch {
-
-    toast.error("Erro ao carregar resumo");
+    return new Date(resumo.inicioExpediente).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
   }
-}
-
-useEffect(() => {
-
-  carregarHistorico();
-
-  carregarResumo();
-
-  const interval = setInterval(() => {
-
-    carregarHistorico();
-
-    carregarResumo();
-
-  }, 10000);
-
-  return () => clearInterval(interval);
-
-}, []);
 
   return (
-    <div className="flex bg-gray-100 min-h-screen">
-
+    <div className="app-shell">
       <SidebarBolsista />
 
-      <main className="flex-1 p-8">
-
-        <h1 className="text-3xl font-bold mb-8">
-          Bem-vindo, {nome}
-        </h1>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-          <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
-
-            <h2 className="text-xl font-bold">
-              Total Horas
-            </h2>
-
-            <p className="text-4xl mt-4">
-              {resumo.totalHoras}
+      <main className="app-main">
+        <div className="page-heading">
+          <div>
+            <p className="page-kicker">
+              Meu painel
             </p>
-
+            <h1 className="page-title">
+              Bem-vindo, {nome}
+            </h1>
+            <p className="page-subtitle">
+              Registre sua jornada e acompanhe seu historico mensal.
+            </p>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
+          <Link
+            to="/bolsista/perfil"
+            className="secondary-button"
+          >
+            <GoPerson aria-hidden="true" />
+            Abrir perfil
+          </Link>
+        </div>
 
-            <h2 className="text-xl font-bold">
-              Registros
-            </h2>
+        <section className="welcome-band mb-6">
+          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">
+                {resumo.trabalhandoAgora
+                  ? "Seu expediente esta em andamento"
+                  : "Pronto para registrar sua jornada"}
+              </h2>
+              <p className="mt-1 text-slate-600">
+                Use os botoes de ponto conforme entrada e saida do dia.
+              </p>
+            </div>
+            <span className={`status-pill ${resumo.trabalhandoAgora ? "status-ok" : "status-muted"}`}>
+              {resumo.trabalhandoAgora ? "Trabalhando" : "Fora do expediente"}
+            </span>
+          </div>
+        </section>
 
-            <p className="text-4xl mt-4">
+        <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="metric-card">
+            <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+              Horas no mes
+            </p>
+            <strong className="mt-3 block text-2xl text-slate-900">
+              {formatarHorasMinutos(resumo.totalHoras)}
+            </strong>
+          </div>
+
+          <div className="metric-card live-clock-card">
+            <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+              Expediente atual
+            </p>
+            <strong className="mt-3 block font-mono text-4xl text-emerald-700">
+              {formatarCronometro()}
+            </strong>
+            <p className="mt-2 text-sm text-slate-500">
+              {resumo.trabalhandoAgora
+                ? `Entrada as ${horarioInicioExpediente()}`
+                : "Cronometro inicia na entrada"}
+            </p>
+          </div>
+
+          <div className="metric-card">
+            <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+              Dias registrados
+            </p>
+            <strong className="mt-3 block text-4xl text-teal-800">
               {resumo.totalRegistros}
-            </p>
-
+            </strong>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
+          <div
+            className={`status-card ${
+              resumo.trabalhandoAgora
+                ? "status-card-active"
+                : "status-card-resting"
+            }`}
+          >
+            <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+              Status atual
+            </p>
 
-            <h2 className="text-xl font-bold">
-              Status
+            <div className="status-visual">
+              <div className="status-orb">
+                <span className="status-ring status-ring-one" />
+                <span className="status-ring status-ring-two" />
+                <span className="status-core" />
+              </div>
+
+              <div className="status-bars">
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
+
+            <p className="mt-3 text-xl font-bold text-slate-900">
+              {resumo.trabalhandoAgora
+                ? "Em expediente"
+                : "Sem expediente ativo"}
+            </p>
+          </div>
+        </section>
+
+        <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="panel">
+            <h2 className="text-xl font-bold text-slate-900">
+              Registrar entrada
             </h2>
-
-            <p className="text-xl mt-4">
-
-              {
+            <p className="mt-1 text-sm text-slate-500">
+              Use quando iniciar sua jornada do dia.
+            </p>
+            <button
+              onClick={baterEntrada}
+              disabled={resumo.trabalhandoAgora}
+              className={`mt-5 w-full ${
                 resumo.trabalhandoAgora
-                  ? "Trabalhando"
-                  : "Fora do expediente"
-              }
+                  ? "quiet-button"
+                  : "primary-button"
+              }`}
+            >
+              <GoSignIn aria-hidden="true" />
+              {resumo.trabalhandoAgora ? "Entrada ja registrada" : "Bater entrada"}
+            </button>
+          </div>
 
+          <div className="panel">
+            <h2 className="text-xl font-bold text-slate-900">
+              Registrar saida
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Use ao encerrar sua jornada.
             </p>
-
-          </div>
-
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-          <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
-
-            <h2 className="text-2xl font-bold mb-4">
-              Entrada
-            </h2>
-
             <button
-  onClick={baterEntrada}
-  disabled={resumo.trabalhandoAgora}
-  className={`px-6 py-3 rounded-lg text-white transition
-  ${
-    resumo.trabalhandoAgora
-      ? "bg-gray-400 cursor-not-allowed"
-      : "bg-green-600 hover:bg-green-700"
-  }`}
->
-  Bater Entrada
-</button>
-
+              onClick={baterSaida}
+              disabled={!resumo.trabalhandoAgora}
+              className={`mt-5 w-full ${
+                resumo.trabalhandoAgora
+                  ? "danger-button"
+                  : "quiet-button"
+              }`}
+            >
+              <GoSignOut aria-hidden="true" />
+              {resumo.trabalhandoAgora ? "Bater saida" : "Sem entrada pendente"}
+            </button>
           </div>
+        </section>
 
-          <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
-
-            <h2 className="text-2xl font-bold mb-4">
-              Saída
+        <section className="panel">
+          <div className="mb-5">
+            <h2 className="text-2xl font-bold text-slate-900">
+              Historico de ponto
             </h2>
-
-            <button
-  onClick={baterSaida}
-  disabled={!resumo.trabalhandoAgora}
-  className={`px-6 py-3 rounded-lg text-white transition
-  ${
-    !resumo.trabalhandoAgora
-      ? "bg-gray-400 cursor-not-allowed"
-      : "bg-red-600 hover:bg-red-700"
-  }`}
->
-  Bater Saída
-</button>
-
+            <p className="text-sm text-slate-500">
+              Ultimos registros de entrada, saida e horas trabalhadas.
+            </p>
           </div>
 
-        </div>
-
-        <div className=" bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
-
-          <h2 className="text-2xl font-bold mb-4">
-            Meu Histórico
-          </h2>
-
-          <table className="w-full">
-
-            <thead>
-
-              <tr className="border-b">
-
-                <th className="text-left p-3">
-                  Data
-                </th>
-
-                <th className="text-left p-3">
-                  Entrada
-                </th>
-
-                <th className="text-left p-3">
-                  Saída
-                </th>
-
-                <th className="text-left p-3">
-                  Horas
-                </th>
-
-              </tr>
-
-            </thead>
-
-            <tbody>
-
-              {
-                registros.map((registro, index) => (
-
-                  <tr
-                    key={index}
-                    className="border-b"
-                  >
-
-                    <td className="p-3">
-                      {registro.data}
+          <div className="overflow-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Entrada</th>
+                  <th>Saida</th>
+                  <th>Horas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {registros.length === 0 ? (
+                  <tr>
+                    <td colSpan={4}>
+                      Nenhum registro encontrado.
                     </td>
-
-                    <td className="p-3">
-                      {registro.entrada}
-                    </td>
-
-                    <td className="p-3">
-                      {registro.saida}
-                    </td>
-
-                    <td className="p-3">
-                      {registro.horas}
-                    </td>
-
                   </tr>
-                ))
-              }
-
-            </tbody>
-
-          </table>
-
-        </div>
-
+                ) : (
+                  registros.map((registro, index) => (
+                    <tr key={`${registro.data}-${index}`}>
+                      <td className="font-bold">{registro.data}</td>
+                      <td>{registro.entrada ? formatarHorasMinutos(registro.entrada) : "-"}</td>
+                      <td>{registro.saida ? formatarHorasMinutos(registro.saida) : "-"}</td>
+                      <td>{formatarHorasMinutos(registro.horas)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </main>
-
     </div>
   );
 }

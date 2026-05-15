@@ -3786,19 +3786,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\admcelso\\.nuget\\packages\\": {}
+    "C:\\Users\\Mateus Rodrigues\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\admcelso\\Documents\\GitHub\\sistema-ponto-smsrio\\backend\\backend.csproj",
+      "projectUniqueName": "C:\\Users\\Mateus Rodrigues\\Documents\\sistema-ponto-smsrio\\backend\\backend.csproj",
       "projectName": "backend",
-      "projectPath": "C:\\Users\\admcelso\\Documents\\GitHub\\sistema-ponto-smsrio\\backend\\backend.csproj",
-      "packagesPath": "C:\\Users\\admcelso\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\admcelso\\Documents\\GitHub\\sistema-ponto-smsrio\\backend\\obj\\",
+      "projectPath": "C:\\Users\\Mateus Rodrigues\\Documents\\sistema-ponto-smsrio\\backend\\backend.csproj",
+      "packagesPath": "C:\\Users\\Mateus Rodrigues\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Mateus Rodrigues\\Documents\\sistema-ponto-smsrio\\backend\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\admcelso\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\Mateus Rodrigues\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
@@ -3884,7 +3884,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.314/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

@@ -21,6 +21,15 @@ public class SupervisorController : ControllerBase
         _pdfService = pdfService;
     }
 
+    private static DateTime HojeLocal =>
+        DateTime.SpecifyKind(DateTime.Now.Date, DateTimeKind.Utc);
+
+    private static string FormatarDuracao(TimeSpan duracao)
+    {
+        var totalMinutos = Math.Max(0, (int)Math.Floor(duracao.TotalMinutes));
+        return $"{totalMinutos / 60:D2}:{totalMinutos % 60:D2}";
+    }
+
     [Authorize(Roles = "Supervisor")]
 [HttpGet("usuarios")]
 public IActionResult Usuarios()
@@ -33,6 +42,8 @@ public IActionResult Usuarios()
             u.Email,
             u.TipoUsuario,
             u.Unidade,
+            u.CursoFaculdade,
+            u.CargaHorariaSemanal,
             u.Aprovado
         })
         .ToList();
@@ -49,6 +60,16 @@ public IActionResult BuscarTodosRegistros(
     string? busca
 )
     {
+        if (mes.HasValue && (mes.Value < 1 || mes.Value > 12))
+        {
+            return BadRequest("Mês inválido");
+        }
+
+        if (ano.HasValue && ano.Value < 1)
+        {
+            return BadRequest("Ano inválido");
+        }
+
         var query = _context.RegistrosPonto.AsQueryable();
 
         if (ano.HasValue)
@@ -63,23 +84,30 @@ public IActionResult BuscarTodosRegistros(
 
         if (!string.IsNullOrWhiteSpace(busca))
 {
+    var termoBusca = busca.Trim().ToLower();
+
     query = query.Where(r =>
-        r.User.Nome.ToLower().Contains(busca.ToLower()) ||
-        r.User.Email.ToLower().Contains(busca.ToLower())
+        r.User.Nome.ToLower().Contains(termoBusca) ||
+        r.User.Email.ToLower().Contains(termoBusca)
     );
 }
 
         var registros = query
-            .OrderByDescending(r => r.Data)
+            .OrderBy(r => r.User.Nome)
+            .ThenBy(r => r.Data)
             .Select(r => new
             {
                 nome = r.User.Nome,
 
                 email = r.User.Email,
 
-                data = r.Data
-    .ToLocalTime()
-    .ToString("dd/MM/yyyy"),
+                curso = r.User.CursoFaculdade,
+
+                unidade = r.User.Unidade,
+
+                cargaHorariaSemanal = r.User.CargaHorariaSemanal,
+
+                data = r.Data.ToString("dd/MM/yyyy"),
 
                 entrada = r.Entrada != null
                     ? r.Entrada.Value.ToLocalTime().ToString("HH:mm")
@@ -91,7 +119,7 @@ public IActionResult BuscarTodosRegistros(
 
                 tempoTrabalhado =
                     r.Entrada != null && r.Saida != null
-                        ? $"{(r.Saida.Value - r.Entrada.Value).Hours:D2}:{(r.Saida.Value - r.Entrada.Value).Minutes:D2}"
+                        ? FormatarDuracao(r.Saida.Value - r.Entrada.Value)
                         : null
             })
             .ToList();
@@ -146,6 +174,11 @@ public IActionResult GerarRelatorioPdf(
     int ano = 0
 )
 {
+    if (mes < 1 || mes > 12 || ano < 1)
+    {
+        return BadRequest("Informe mês e ano válidos");
+    }
+
     List<dynamic> dadosRelatorio;
 
     string nomeRelatorio;
@@ -154,12 +187,14 @@ public IActionResult GerarRelatorioPdf(
     {
         // RELATÓRIO INDIVIDUAL
 
+      var termoBusca = busca.Trim().ToLower();
+
       var user = _context.Users
     .FirstOrDefault(u =>
         u.TipoUsuario == "Bolsista" &&
         (
-            u.Email == busca ||
-            u.Nome.ToLower() == busca!.ToLower()
+            u.Email.ToLower() == termoBusca ||
+            u.Nome.ToLower().Contains(termoBusca)
         )
     );
 
@@ -189,9 +224,7 @@ public IActionResult GerarRelatorioPdf(
             {
                 nome = user.Nome,
 
-                data = r.Data
-    .ToLocalTime()
-    .ToString("dd/MM/yyyy"),
+                data = r.Data.ToString("dd/MM/yyyy"),
 
                 entrada = r.Entrada != null
                     ? r.Entrada.Value.ToLocalTime().ToString("HH:mm")
@@ -202,7 +235,7 @@ public IActionResult GerarRelatorioPdf(
                     : "",
 
                 horasTrabalhadas =
-                    $"{tempo.Hours:D2}:{tempo.Minutes:D2}",
+                    FormatarDuracao(tempo),
 
                 minutosTotais = tempo.TotalMinutes
             };
@@ -257,13 +290,9 @@ public IActionResult GerarRelatorioPdf(
 
             return new
             {
-                nome = _context.Users
-    .FirstOrDefault(u => u.Id == r.UserId)?.Nome
-    ?? "Usuário",
+                nome = r.User.Nome,
 
-                data = r.Data
-    .ToLocalTime()
-    .ToString("dd/MM/yyyy"),
+                data = r.Data.ToString("dd/MM/yyyy"),
 
                 entrada = r.Entrada != null
                     ? r.Entrada.Value.ToLocalTime().ToString("HH:mm")
@@ -274,7 +303,7 @@ public IActionResult GerarRelatorioPdf(
                     : "",
 
                 horasTrabalhadas =
-                    $"{tempo.Hours:D2}:{tempo.Minutes:D2}",
+                    FormatarDuracao(tempo),
 
                 minutosTotais = tempo.TotalMinutes
             };
@@ -308,7 +337,10 @@ var pdf = _pdfService.GerarRelatorio(
                 {
                     id = u.Id,
                     nome = u.Nome,
-                    email = u.Email
+                    email = u.Email,
+                    curso = u.CursoFaculdade,
+                    unidade = u.Unidade,
+                    cargaHorariaSemanal = u.CargaHorariaSemanal
                 })
                 .ToList();
 
@@ -320,7 +352,11 @@ var pdf = _pdfService.GerarRelatorio(
         public IActionResult UsuariosAtivos()
         {
             var ativos = _context.RegistrosPonto
-                .Where(r => r.Entrada != null && r.Saida == null)
+                .Where(r =>
+                    r.Data.Date == HojeLocal &&
+                    r.Entrada != null &&
+                    r.Saida == null
+                )
                 .Select(r => new
                 {
                     nome = r.User.Nome,
@@ -331,9 +367,7 @@ var pdf = _pdfService.GerarRelatorio(
                         .ToLocalTime()
                         .ToString("HH:mm"),
 
-                    data = r.Data
-    .ToLocalTime()
-    .ToString("dd/MM/yyyy")
+                    data = r.Data.ToString("dd/MM/yyyy")
                 })
                 .ToList();
 
@@ -433,9 +467,7 @@ public IActionResult ExcluirUsuario(int id)
 
                 return new
                 {
-                    data = r.Data
-    .ToLocalTime()
-    .ToString("dd/MM/yyyy"),
+                    data = r.Data.ToString("dd/MM/yyyy"),
 
                     entrada = r.Entrada != null
                         ? r.Entrada.Value.ToLocalTime().ToString("HH:mm")
@@ -446,7 +478,7 @@ public IActionResult ExcluirUsuario(int id)
                         : null,
 
                     horasTrabalhadas = tempo != null
-                        ? $"{tempo.Value.Hours:D2}:{tempo.Value.Minutes:D2}"
+                        ? FormatarDuracao(tempo.Value)
                         : "00:00",
 
                     minutosTotais = tempo != null

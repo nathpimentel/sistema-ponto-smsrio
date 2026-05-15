@@ -1,119 +1,139 @@
-import logo from "../assets/prefeitura-logo.png";
+import axios from "axios";
 import { useState } from "react";
+import toast from "react-hot-toast";
+import {
+  GoPersonAdd,
+  GoSignIn
+} from "react-icons/go";
 import {
   Link,
   useNavigate
 } from "react-router-dom";
 
+import logo from "../assets/prefeitura-logo.png";
 import api from "../services/api";
 
 export default function Login() {
-
   const navigate = useNavigate();
-
-  const [email, setEmail] = useState<string>("");
-
-  const [senha, setSenha] = useState<string>("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [carregando, setCarregando] = useState(false);
 
   async function fazerLogin(
     e: React.FormEvent<HTMLFormElement>
   ) {
     e.preventDefault();
+    setCarregando(true);
 
     try {
       const response = await api.post("/auth/login", {
         email,
-        senha: senha
+        senha
       });
 
-localStorage.setItem(
-  "token",
-  response.data.token
-);
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("tipoUsuario", response.data.tipoUsuario);
+      localStorage.setItem("nome", response.data.nome);
 
-localStorage.setItem(
-  "tipoUsuario",
-  response.data.tipoUsuario
-);
+      if (response.data.tipoUsuario === "Supervisor") {
+        navigate("/dashboard");
+      } else {
+        navigate("/bolsista");
+      }
+    } catch (error) {
+      const mensagem =
+        axios.isAxiosError(error) &&
+        typeof error.response?.data === "string"
+          ? error.response.data
+          : "Erro ao fazer login";
 
-localStorage.setItem(
-  "nome",
-  response.data.nome
-);
-
-if (
-  response.data.tipoUsuario ===
-  "Supervisor"
-) {
-
-  navigate("/dashboard");
-
-} else {
-
-  navigate("/bolsista");
-}
-
-    }
-    catch {
-      alert("Erro ao fazer login");
+      toast.error(mensagem);
+    } finally {
+      setCarregando(false);
     }
   }
 
-  <div className="flex justify-center mb-6">
-
-  <img
-    src={logo}
-    alt="Prefeitura"
-    className="w-32"
-  />
-
-</div>
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form
-        onSubmit={fazerLogin}
-        className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md"
-      >
-        <h1 className="text-2xl font-bold mb-6 text-center">
-          Login Supervisor
-        </h1>
+    <div className="auth-page">
+      <section className="auth-visual">
+        <div className="auth-copy">
+          <p className="page-kicker text-white/80">
+            Secretaria Municipal de Saude
+          </p>
+          <h1>
+            Controle de ponto simples, claro e seguro.
+          </h1>
+          <p>
+            Acompanhe jornadas, relatorios e aprovacoes em uma experiencia
+            organizada para supervisores e bolsistas.
+          </p>
+        </div>
+      </section>
 
-        <input
-          type="email"
-          placeholder="E-mail"
-          className="w-full border p-3 rounded-lg mb-4"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <input
-          type="password"
-          placeholder="Senha"
-          className="w-full border p-3 rounded-lg mb-4"
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-        />
-
-        <button
-          className="w-full bg-blue-600 text-white p-3 rounded-lg"
+      <section className="auth-panel">
+        <form
+          onSubmit={fazerLogin}
+          className="auth-card"
         >
-          Entrar
-        </button>
+          <div className="mb-7">
+            <img
+              src={logo}
+              alt="Prefeitura do Rio Saude"
+              className="w-44 mb-7"
+            />
 
-        <p className="text-center mt-4 text-gray-600">
+            <p className="page-kicker">
+              Acesso ao sistema
+            </p>
+            <h2 className="page-title text-3xl">
+              Entrar
+            </h2>
+          </div>
 
-  Não possui conta?
+          <label className="field-label">
+            Email
+          </label>
+          <input
+            type="email"
+            autoComplete="username"
+            placeholder="nome@email.com"
+            className="field mb-4"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-  <Link
-    to="/register"
-    className="text-blue-600 ml-2 font-semibold"
-  >
-    Criar conta
-  </Link>
+          <label className="field-label">
+            Senha
+          </label>
+          <input
+            type="password"
+            autoComplete="current-password"
+            placeholder="Digite sua senha"
+            className="field mb-6"
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+          />
 
-</p>
-      </form>
+          <button
+            disabled={carregando}
+            className="primary-button w-full"
+          >
+            <GoSignIn aria-hidden="true" />
+            {carregando ? "Entrando..." : "Entrar"}
+          </button>
+
+          <div className="mt-6 flex flex-col gap-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+            <span>Nao possui conta?</span>
+            <Link
+              to="/register"
+              className="inline-flex items-center gap-2 font-bold text-teal-700 hover:text-teal-900"
+            >
+              <GoPersonAdd aria-hidden="true" />
+              Criar cadastro
+            </Link>
+          </div>
+        </form>
+      </section>
     </div>
   );
 }

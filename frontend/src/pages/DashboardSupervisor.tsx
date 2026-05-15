@@ -2,13 +2,17 @@ import {
   useEffect,
   useState
 } from "react";
-
 import toast from "react-hot-toast";
+import {
+  GoCheckCircle,
+  GoClock,
+  GoFile
+} from "react-icons/go";
+import { Link } from "react-router-dom";
 
-import Sidebar
-from "../components/Sidebar";
-
+import Sidebar from "../components/Sidebar";
 import api from "../services/api";
+import { formatarHorasMinutos } from "../utils/formatarHoras";
 
 interface Bolsista {
   id: number;
@@ -24,248 +28,178 @@ interface Ativo {
 }
 
 export default function DashboardSupervisor() {
-
-  const [bolsistas, setBolsistas] =
-    useState<Bolsista[]>([]);
-
-  const [ativos, setAtivos] =
-    useState<Ativo[]>([]);
+  const nome = localStorage.getItem("nome") || "Supervisor";
+  const [bolsistas, setBolsistas] = useState<Bolsista[]>([]);
+  const [ativos, setAtivos] = useState<Ativo[]>([]);
 
   async function carregarBolsistas() {
-
     try {
-
-      const response = await api.get(
-        "/supervisor/bolsistas",
-        {
-          headers: {
-            Authorization:
-              `Bearer ${localStorage.getItem("token")}`
-          }
-        }
-      );
-
+      const response = await api.get("/supervisor/bolsistas");
       setBolsistas(response.data);
-
     } catch {
-
-      toast.error(
-        "Erro ao carregar bolsistas"
-      );
+      toast.error("Erro ao carregar bolsistas");
     }
   }
 
   async function carregarAtivos() {
-
     try {
-
-      const response = await api.get(
-        "/supervisor/ativos",
-        {
-          headers: {
-            Authorization:
-              `Bearer ${localStorage.getItem("token")}`
-          }
-        }
-      );
-
-      if (Array.isArray(response.data)) {
-
-        setAtivos(response.data);
-
-      } else {
-
-        setAtivos([]);
-      }
-
+      const response = await api.get("/supervisor/ativos");
+      setAtivos(Array.isArray(response.data) ? response.data : []);
     } catch {
-
-      toast.error(
-        "Erro ao carregar ativos"
-      );
+      toast.error("Erro ao carregar bolsistas em expediente");
     }
   }
 
   useEffect(() => {
-
     carregarBolsistas();
-
     carregarAtivos();
 
     const interval = setInterval(() => {
-
       carregarBolsistas();
-
       carregarAtivos();
-
     }, 10000);
 
     return () => clearInterval(interval);
-
   }, []);
 
   return (
-    <div className="flex bg-gray-100 min-h-screen">
-
+    <div className="app-shell">
       <Sidebar />
 
-      <main className="flex-1 p-8">
-
-        <h1 className="text-4xl font-bold mb-8 text-gray-800">
-          Dashboard Supervisor
-        </h1>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-          <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
-
-            <h2 className="text-xl font-semibold text-gray-600">
-              Bolsistas
-            </h2>
-
-            <p className="text-5xl font-bold mt-4 text-blue-600">
-              {bolsistas.length}
+      <main className="app-main">
+        <div className="page-heading">
+          <div>
+            <p className="page-kicker">
+              Visao geral
             </p>
-
+            <h1 className="page-title">
+              Bem-vindo, {nome}
+            </h1>
+            <p className="page-subtitle">
+              Acompanhe a equipe em expediente e acesse rapidamente as rotinas do ponto.
+            </p>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
-
-            <h2 className="text-xl font-semibold text-gray-600">
-              Trabalhando Agora
-            </h2>
-
-            <p className="text-5xl font-bold mt-4 text-green-600">
-              {ativos.length}
-            </p>
-
-          </div>
-
-          <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
-
-            <h2 className="text-xl font-semibold text-gray-600">
-              Status Sistema
-            </h2>
-
-            <p className="text-2xl font-bold mt-6 text-green-600">
-              Online
-            </p>
-
-          </div>
-
+          <Link
+            to="/relatorios"
+            className="primary-button"
+          >
+            <GoFile aria-hidden="true" />
+            Gerar relatorio
+          </Link>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
-
-          <div className="flex items-center justify-between mb-6">
-
-            <h2 className="text-2xl font-bold text-gray-800">
-              Bolsistas Ativos
-            </h2>
-
-            <span className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold">
-              Atualização automática
+        <section className="welcome-band mb-6">
+          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">
+                Painel de supervisao atualizado automaticamente
+              </h2>
+              <p className="mt-1 text-slate-600">
+                Os indicadores sao atualizados a cada poucos segundos para manter a rotina visivel.
+              </p>
+            </div>
+            <span className="status-pill status-ok">
+              <GoCheckCircle aria-hidden="true" />
+              Sistema online
             </span>
+          </div>
+        </section>
 
+        <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="metric-card">
+            <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+              Bolsistas cadastrados
+            </p>
+            <strong className="mt-3 block text-4xl text-slate-900">
+              {bolsistas.length}
+            </strong>
           </div>
 
-          {
-            ativos.length === 0 ? (
+          <div className="metric-card">
+            <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+              Trabalhando agora
+            </p>
+            <strong className="mt-3 block text-4xl text-emerald-700">
+              {ativos.length}
+            </strong>
+          </div>
 
-              <div className="text-center py-10">
+          <div className="metric-card">
+            <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+              Proxima acao
+            </p>
+            <strong className="mt-3 block text-xl text-teal-800">
+              Revisar registros
+            </strong>
+            <Link
+              to="/registros"
+              className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-teal-700 hover:text-teal-900"
+            >
+              <GoClock aria-hidden="true" />
+              Abrir historico
+            </Link>
+          </div>
+        </section>
 
-                <p className="text-gray-500 text-lg">
-                  Nenhum bolsista em trabalho no momento
-                </p>
+        <section className="panel">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">
+                Equipe em expediente
+              </h2>
+              <p className="text-sm text-slate-500">
+                Bolsistas com entrada registrada e saida pendente.
+              </p>
+            </div>
+            <span className="status-pill status-muted">
+              Atualizacao automatica
+            </span>
+          </div>
 
-              </div>
-
-            ) : (
-
-              <div className="overflow-auto">
-
-                <table className="w-full">
-
-                  <thead>
-
-                    <tr className="border-b text-gray-600">
-
-                      <th className="text-left p-4">
-                        Nome
-                      </th>
-
-                      <th className="text-left p-4">
-                        Email
-                      </th>
-
-                      <th className="text-left p-4">
-                        Entrada
-                      </th>
-
-                      <th className="text-left p-4">
-                        Data
-                      </th>
-
-                      <th className="text-left p-4">
-                        Status
-                      </th>
-
+          {ativos.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+              <p className="font-bold text-slate-700">
+                Nenhum bolsista em expediente no momento
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Quando alguem registrar entrada, aparecera aqui.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-auto">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Entrada</th>
+                    <th>Data</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ativos.map((ativo, index) => (
+                    <tr key={`${ativo.email}-${index}`}>
+                      <td className="font-bold">
+                        {ativo.nome}
+                      </td>
+                      <td>{ativo.email}</td>
+                      <td>{formatarHorasMinutos(ativo.entrada)}</td>
+                      <td>{ativo.data}</td>
+                      <td>
+                        <span className="status-pill status-ok">
+                          Em expediente
+                        </span>
+                      </td>
                     </tr>
-
-                  </thead>
-
-                  <tbody>
-
-                    {
-                      ativos.map((ativo, index) => (
-
-                        <tr
-                          key={index}
-                          className="border-b hover:bg-gray-50 transition"
-                        >
-
-                          <td className="p-4 font-medium">
-                            {ativo.nome}
-                          </td>
-
-                          <td className="p-4 text-gray-600">
-                            {ativo.email}
-                          </td>
-
-                          <td className="p-4">
-                            {ativo.entrada}
-                          </td>
-
-                          <td className="p-4">
-                            {ativo.data}
-                          </td>
-
-                          <td className="p-4">
-
-                            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
-
-                              Ativo
-
-                            </span>
-
-                          </td>
-
-                        </tr>
-                      ))
-                    }
-
-                  </tbody>
-
-                </table>
-
-              </div>
-            )
-          }
-
-        </div>
-
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </main>
-
     </div>
   );
 }

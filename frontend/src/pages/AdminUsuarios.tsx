@@ -1,13 +1,24 @@
 import {
   useEffect,
+  useMemo,
   useState
 } from "react";
-
 import toast from "react-hot-toast";
+import {
+  GoBlocked,
+  GoCheckCircle,
+  GoClock,
+  GoFilter,
+  GoPeople,
+  GoPerson,
+  GoSearch,
+  GoShieldCheck,
+  GoSync,
+  GoTrash,
+  GoXCircle
+} from "react-icons/go";
 
-import Sidebar
-from "../components/Sidebar";
-
+import Sidebar from "../components/Sidebar";
 import api from "../services/api";
 
 interface Usuario {
@@ -17,342 +28,407 @@ interface Usuario {
   tipoUsuario: string;
   aprovado: boolean;
   unidade: string;
+  cursoFaculdade?: string;
+  cargaHorariaSemanal?: number | null;
 }
 
 export default function AdminUsuarios() {
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [busca, setBusca] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [modalExcluir, setModalExcluir] = useState(false);
+  const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
 
-  const [usuarios, setUsuarios] =
-    useState<Usuario[]>([]);
+  const usuariosFiltrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
 
-    const [modalExcluir, setModalExcluir] =
-  useState(false);
+    return usuarios.filter((usuario) =>
+      (
+        !termo ||
+        usuario.nome.toLowerCase().includes(termo) ||
+        usuario.email.toLowerCase().includes(termo) ||
+        usuario.tipoUsuario.toLowerCase().includes(termo) ||
+        (usuario.unidade || "").toLowerCase().includes(termo)
+      ) &&
+      (
+        filtroStatus === "todos" ||
+        (filtroStatus === "ativos" && usuario.aprovado) ||
+        (filtroStatus === "pendentes" && !usuario.aprovado)
+      ) &&
+      (
+        filtroTipo === "todos" ||
+        usuario.tipoUsuario === filtroTipo
+      )
+    );
+  }, [usuarios, busca, filtroStatus, filtroTipo]);
 
-const [usuarioSelecionado, setUsuarioSelecionado] =
-  useState<number | null>(null);
+  const pendentes = usuarios.filter((usuario) => !usuario.aprovado).length;
+  const ativos = usuarios.filter((usuario) => usuario.aprovado).length;
+  const bolsistas = usuarios.filter((usuario) => usuario.tipoUsuario === "Bolsista").length;
+  const supervisores = usuarios.filter((usuario) => usuario.tipoUsuario === "Supervisor").length;
 
   async function carregarUsuarios() {
-
     try {
-
-      const response = await api.get(
-        "/supervisor/usuarios",
-        {
-          headers: {
-            Authorization:
-              `Bearer ${localStorage.getItem("token")}`
-          }
-        }
-      );
-
+      const response = await api.get("/supervisor/usuarios");
       setUsuarios(response.data);
-
     } catch {
-
-      toast.error(
-        "Erro ao carregar usuários"
-      );
+      toast.error("Erro ao carregar usuarios");
     }
   }
 
-  async function aprovarUsuario(
-    id: number
-  ) {
-
+  async function aprovarUsuario(id: number) {
     try {
-
-      await api.put(
-        `/supervisor/aprovar/${id}`,
-        {},
-        {
-          headers: {
-            Authorization:
-              `Bearer ${localStorage.getItem("token")}`
-          }
-        }
-      );
-
-      toast.success(
-        "Usuário aprovado"
-      );
-
+      await api.put(`/supervisor/aprovar/${id}`, {});
+      toast.success("Usuario aprovado");
       carregarUsuarios();
-
-    } catch (error) {
-
-      console.log(error);
-
-      toast.error(
-        "Erro ao aprovar usuário"
-      );
+    } catch {
+      toast.error("Erro ao aprovar usuario");
     }
   }
 
-  async function desativarUsuario(
-    id: number
-  ) {
-
+  async function desativarUsuario(id: number) {
     try {
-
-      await api.put(
-        `/supervisor/desativar/${id}`,
-        {},
-        {
-          headers: {
-            Authorization:
-              `Bearer ${localStorage.getItem("token")}`
-          }
-        }
-      );
-
-      toast.success(
-        "Usuário desativado"
-      );
-
+      await api.put(`/supervisor/desativar/${id}`, {});
+      toast.success("Usuario desativado");
       carregarUsuarios();
-
-    } catch (error) {
-
-      console.log(error);
-
-      toast.error(
-        "Erro ao desativar usuário"
-      );
+    } catch {
+      toast.error("Erro ao desativar usuario");
     }
   }
 
-  async function excluirUsuario(
-  id: number
-) {
-
-  try {
-
-    await api.delete(
-      `/supervisor/excluir/${id}`,
-      {
-        headers: {
-          Authorization:
-            `Bearer ${localStorage.getItem("token")}`
-        }
-      }
-    );
-
-    toast.success(
-      "Usuário excluído"
-    );
-
-    carregarUsuarios();
-
-  } catch (error) {
-
-    console.log(error);
-
-    toast.error(
-      "Erro ao excluir usuário"
-    );
+  async function excluirUsuario(id: number) {
+    try {
+      await api.delete(`/supervisor/excluir/${id}`);
+      toast.success("Usuario excluido");
+      setModalExcluir(false);
+      setUsuarioSelecionado(null);
+      carregarUsuarios();
+    } catch {
+      toast.error("Erro ao excluir usuario");
+    }
   }
-}
 
   useEffect(() => {
-
     carregarUsuarios();
-
   }, []);
 
   return (
-    <div className="flex bg-gray-100 min-h-screen">
-
+    <div className="app-shell">
       <Sidebar />
 
-      <main className="flex-1 p-8">
+      <main className="app-main">
+        <div className="page-heading">
+          <div>
+            <p className="page-kicker">
+              Gestao de acesso
+            </p>
+            <h1 className="page-title">
+              Usuarios
+            </h1>
+            <p className="page-subtitle">
+              Aprove cadastros, acompanhe perfis e mantenha a base organizada.
+            </p>
+          </div>
 
-        <h1 className="text-3xl font-bold mb-8">
-          Administração de Usuários
-        </h1>
+          <button
+            onClick={carregarUsuarios}
+            className="secondary-button"
+          >
+            <GoSync aria-hidden="true" />
+            Atualizar lista
+          </button>
+        </div>
 
-        <div className="bg-white rounded-2xl shadow overflow-auto">
+        <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="metric-card admin-metric-card">
+            <span className="admin-stat-icon">
+              <GoPeople aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+                Total de usuarios
+              </p>
+              <strong className="mt-2 block text-4xl text-slate-900">
+                {usuarios.length}
+              </strong>
+            </div>
+          </div>
 
-          <table className="w-full">
+          <div className="metric-card admin-metric-card">
+            <span className="admin-stat-icon admin-stat-icon-ok">
+              <GoCheckCircle aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+                Ativos
+              </p>
+              <strong className="mt-2 block text-4xl text-emerald-700">
+                {ativos}
+              </strong>
+            </div>
+          </div>
 
-            <thead className="bg-gray-200">
+          <div className="metric-card admin-metric-card">
+            <span className="admin-stat-icon admin-stat-icon-warn">
+              <GoClock aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+                Pendentes
+              </p>
+              <strong className="mt-2 block text-4xl text-amber-700">
+                {pendentes}
+              </strong>
+            </div>
+          </div>
 
-              <tr>
+          <div className="metric-card admin-metric-card">
+            <span className="admin-stat-icon admin-stat-icon-info">
+              <GoShieldCheck aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+                Supervisores
+              </p>
+              <strong className="mt-2 block text-4xl text-teal-800">
+                {supervisores}
+              </strong>
+              <p className="mt-1 text-sm text-slate-500">
+                {bolsistas} bolsista(s)
+              </p>
+            </div>
+          </div>
+        </section>
 
-                <th className="text-left p-4">
-                  Nome
-                </th>
+        <section className="panel mb-6">
+          <div className="mb-4 flex items-center gap-2">
+            <GoFilter
+              aria-hidden="true"
+              className="text-teal-700"
+            />
+            <h2 className="text-xl font-bold text-slate-900">
+              Filtros administrativos
+            </h2>
+          </div>
 
-                <th className="text-left p-4">
-                  Email
-                </th>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_0.75fr_0.75fr]">
+            <div>
+              <label className="field-label">
+                Buscar usuario
+              </label>
+              <div className="relative">
+                <GoSearch
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Nome, email, tipo ou unidade"
+                  className="field pl-10"
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                />
+              </div>
+            </div>
 
-                <th className="text-left p-4">
-                  Tipo
-                </th>
+            <div>
+              <label className="field-label">
+                Status
+              </label>
+              <select
+                className="field"
+                value={filtroStatus}
+                onChange={(e) => setFiltroStatus(e.target.value)}
+              >
+                <option value="todos">Todos</option>
+                <option value="ativos">Ativos</option>
+                <option value="pendentes">Pendentes</option>
+              </select>
+            </div>
 
-                <th className="text-left p-4">
-                  Status
-                </th>
+            <div>
+              <label className="field-label">
+                Tipo
+              </label>
+              <select
+                className="field"
+                value={filtroTipo}
+                onChange={(e) => setFiltroTipo(e.target.value)}
+              >
+                <option value="todos">Todos</option>
+                <option value="Bolsista">Bolsistas</option>
+                <option value="Supervisor">Supervisores</option>
+              </select>
+            </div>
+          </div>
+        </section>
 
-                <th className="text-left p-4">
-                  Ações
-                </th>
+        <section className="panel">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">
+                Lista de usuarios
+              </h2>
+              <p className="text-sm text-slate-500">
+                {usuariosFiltrados.length} usuario(s) exibidos com os filtros atuais.
+              </p>
+            </div>
 
-              </tr>
+            <span className="status-pill status-muted">
+              <GoPeople aria-hidden="true" />
+              {usuarios.length} no sistema
+            </span>
+          </div>
 
-            </thead>
-
-            <tbody>
-
-              {
-                usuarios.map((usuario) => (
-
-                  <tr
-                    key={usuario.id}
-                    className="border-b"
-                  >
-
-                    <td className="p-4">
-                      {usuario.nome}
+          <div className="overflow-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Perfil</th>
+                  <th>Unidade</th>
+                  <th>Dados academicos</th>
+                  <th>Status</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usuariosFiltrados.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>
+                      Nenhum usuario encontrado.
                     </td>
-
-                    <td className="p-4">
-                      {usuario.email}
-                    </td>
-
-                    <td className="p-4">
-                      {usuario.tipoUsuario}
-                    </td>
-
-                    <td className="p-4">
-
-                      {
-                        usuario.aprovado ? (
-
-                          <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
-
-                            Ativo
-
-                          </span>
-
-                        ) : (
-
-                          <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm">
-
-                            Pendente
-
-                          </span>
-                        )
-                      }
-
-                    </td>
-
-                    <td className="p-4 flex gap-2">
-
-                      <button
-                        onClick={() =>
-                          aprovarUsuario(
-                            usuario.id
-                          )
-                        }
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg"
-                      >
-                        Aprovar
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          desativarUsuario(
-                            usuario.id
-                          )
-                        }
-                        className="bg-red-600 text-white px-4 py-2 rounded-lg"
-                      >
-                        Desativar
-                      </button>
-
-                      <button
-  onClick={() => {
-
-  setUsuarioSelecionado(
-    usuario.id
-  );
-
-  setModalExcluir(true);
-
-}}
-  className="bg-gray-800 text-white px-4 py-2 rounded-lg"
->
-  Excluir
-</button>
-
-                    </td>
-
                   </tr>
-                ))
-              }
+                ) : (
+                  usuariosFiltrados.map((usuario) => (
+                    <tr key={usuario.id}>
+                      <td>
+                        <div className="user-cell">
+                          <span className="user-avatar">
+                            {usuario.nome.charAt(0).toUpperCase()}
+                          </span>
+                          <div>
+                            <p className="font-bold text-slate-900">
+                              {usuario.nome}
+                            </p>
+                            <p className="break-all text-sm text-slate-500">
+                              {usuario.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="status-pill status-muted">
+                          {usuario.tipoUsuario === "Supervisor" ? (
+                            <GoShieldCheck aria-hidden="true" />
+                          ) : (
+                            <GoPerson aria-hidden="true" />
+                          )}
+                          {usuario.tipoUsuario}
+                        </span>
+                      </td>
+                      <td>{usuario.unidade || "Sem unidade"}</td>
+                      <td>
+                        {usuario.tipoUsuario === "Bolsista" ? (
+                          <div className="text-sm text-slate-600">
+                            <p>{usuario.cursoFaculdade || "Curso nao informado"}</p>
+                            <p className="font-bold text-slate-700">
+                              {usuario.cargaHorariaSemanal
+                                ? `${usuario.cargaHorariaSemanal}h semanais`
+                                : "Carga nao informada"}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-slate-500">
+                            Acesso administrativo
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`status-pill ${usuario.aprovado ? "status-ok" : "status-warn"}`}>
+                          {usuario.aprovado ? (
+                            <GoCheckCircle aria-hidden="true" />
+                          ) : (
+                            <GoXCircle aria-hidden="true" />
+                          )}
+                          {usuario.aprovado ? "Ativo" : "Pendente"}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="flex flex-wrap gap-2">
+                          {!usuario.aprovado && (
+                            <button
+                              onClick={() => aprovarUsuario(usuario.id)}
+                              className="quiet-button min-h-0 px-3 py-2 text-sm"
+                            >
+                              <GoCheckCircle aria-hidden="true" />
+                              Aprovar
+                            </button>
+                          )}
 
-            </tbody>
+                          {usuario.aprovado && (
+                            <button
+                              onClick={() => desativarUsuario(usuario.id)}
+                              className="secondary-button min-h-0 px-3 py-2 text-sm"
+                            >
+                              <GoBlocked aria-hidden="true" />
+                              Desativar
+                            </button>
+                          )}
 
-          </table>
-
-        </div>
-
+                          <button
+                            onClick={() => {
+                              setUsuarioSelecionado(usuario);
+                              setModalExcluir(true);
+                            }}
+                            className="danger-button min-h-0 px-3 py-2 text-sm"
+                          >
+                            <GoTrash aria-hidden="true" />
+                            Excluir
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </main>
-      {
-  modalExcluir && (
 
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      {modalExcluir && usuarioSelecionado && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4">
+          <div className="panel w-full max-w-md">
+            <h2 className="text-2xl font-bold text-slate-900">
+              Confirmar exclusao
+            </h2>
 
-      <div className="bg-white rounded-2xl p-8 w-full max-w-md">
+            <p className="mt-3 text-slate-600">
+              Deseja excluir permanentemente o usuario {usuarioSelecionado.nome}?
+            </p>
 
-        <h2 className="text-2xl font-bold mb-4">
-          Confirmar exclusão
-        </h2>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setModalExcluir(false)}
+                className="secondary-button"
+              >
+                <GoXCircle aria-hidden="true" />
+                Cancelar
+              </button>
 
-        <p className="text-gray-600 mb-6">
-
-          Tem certeza que deseja excluir
-          este usuário permanentemente?
-
-        </p>
-
-        <div className="flex justify-end gap-3">
-
-          <button
-            onClick={() =>
-              setModalExcluir(false)
-            }
-            className="px-5 py-2 rounded-lg border"
-          >
-            Cancelar
-          </button>
-
-          <button
-            onClick={() => {
-
-              if (
-                usuarioSelecionado
-              ) {
-
-                excluirUsuario(
-                  usuarioSelecionado
-                );
-              }
-
-            }}
-            className="bg-red-600 text-white px-5 py-2 rounded-lg"
-          >
-            Excluir
-          </button>
-
+              <button
+                onClick={() => excluirUsuario(usuarioSelecionado.id)}
+                className="danger-button"
+              >
+                <GoTrash aria-hidden="true" />
+                Excluir
+              </button>
+            </div>
+          </div>
         </div>
-
-      </div>
-
-    </div>
-  )
-}
-
+      )}
     </div>
   );
 }
