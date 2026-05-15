@@ -24,9 +24,10 @@ public class SupervisorController : ControllerBase
 
     [Authorize(Roles = "Supervisor")]
     [HttpGet("registros")]
-    public IActionResult BuscarTodosRegistros(
+public IActionResult BuscarTodosRegistros(
     int? mes,
-    int? ano
+    int? ano,
+    string? busca
 )
     {
         var query = _context.RegistrosPonto.AsQueryable();
@@ -41,6 +42,14 @@ public class SupervisorController : ControllerBase
             query = query.Where(r => r.Data.Month == mes.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(busca))
+{
+    query = query.Where(r =>
+        r.User.Nome.ToLower().Contains(busca.ToLower()) ||
+        r.User.Email.ToLower().Contains(busca.ToLower())
+    );
+}
+
         var registros = query
             .OrderByDescending(r => r.Data)
             .Select(r => new
@@ -49,7 +58,9 @@ public class SupervisorController : ControllerBase
 
                 email = r.User.Email,
 
-                data = r.Data.ToString("dd/MM/yyyy"),
+                data = r.Data
+    .ToLocalTime()
+    .ToString("dd/MM/yyyy"),
 
                 entrada = r.Entrada != null
                     ? r.Entrada.Value.ToLocalTime().ToString("HH:mm")
@@ -122,7 +133,9 @@ public IActionResult GerarRelatorioPdf(
             {
                 nome = user.Nome,
 
-                data = r.Data.ToString("dd/MM/yyyy"),
+                data = r.Data
+    .ToLocalTime()
+    .ToString("dd/MM/yyyy"),
 
                 entrada = r.Entrada != null
                     ? r.Entrada.Value.ToLocalTime().ToString("HH:mm")
@@ -192,7 +205,9 @@ public IActionResult GerarRelatorioPdf(
     .FirstOrDefault(u => u.Id == r.UserId)?.Nome
     ?? "Usuário",
 
-                data = r.Data.ToString("dd/MM/yyyy"),
+                data = r.Data
+    .ToLocalTime()
+    .ToString("dd/MM/yyyy"),
 
                 entrada = r.Entrada != null
                     ? r.Entrada.Value.ToLocalTime().ToString("HH:mm")
@@ -260,7 +275,9 @@ var pdf = _pdfService.GerarRelatorio(
                         .ToLocalTime()
                         .ToString("HH:mm"),
 
-                    data = r.Data.ToString("dd/MM/yyyy")
+                    data = r.Data
+    .ToLocalTime()
+    .ToString("dd/MM/yyyy")
                 })
                 .ToList();
 
@@ -313,7 +330,9 @@ var pdf = _pdfService.GerarRelatorio(
 
                 return new
                 {
-                    data = r.Data.ToString("dd/MM/yyyy"),
+                    data = r.Data
+    .ToLocalTime()
+    .ToString("dd/MM/yyyy"),
 
                     entrada = r.Entrada != null
                         ? r.Entrada.Value.ToLocalTime().ToString("HH:mm")

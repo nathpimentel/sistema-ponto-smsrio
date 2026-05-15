@@ -1,4 +1,7 @@
+import Sidebar from "../components/Sidebar";
+
 import { useEffect, useState } from "react";
+
 import api from "../services/api";
 
 interface Bolsista {
@@ -15,115 +18,178 @@ interface Ativo {
 }
 
 export default function DashboardSupervisor() {
+
   const [bolsistas, setBolsistas] = useState<Bolsista[]>([]);
+
   const [ativos, setAtivos] = useState<Ativo[]>([]);
 
   async function carregarBolsistas() {
+
     try {
-      const response = await api.get("/supervisor/bolsistas");
+
+      const response = await api.get(
+        "/supervisor/bolsistas",
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
 
       setBolsistas(response.data);
+
     } catch {
+
       alert("Erro ao carregar bolsistas");
     }
   }
 
   async function carregarAtivos() {
+
     try {
-      const response = await api.get("/supervisor/ativos");
+
+      const response = await api.get(
+        "/supervisor/ativos",
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
 
       if (Array.isArray(response.data)) {
+
         setAtivos(response.data);
       }
+
     } catch {
-      console.log("Nenhum ativo");
+
+      alert("Erro ao carregar ativos");
     }
   }
 
   useEffect(() => {
+
     carregarBolsistas();
+
     carregarAtivos();
+
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <h1 className="text-3xl font-bold mb-8">
-        Dashboard Supervisor
-      </h1>
+    <div className="flex bg-gray-100 min-h-screen">
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-        <div className="bg-white rounded-2xl shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Bolsistas Ativos
+      <Sidebar />
+
+      <main className="flex-1 p-8">
+
+        <h1 className="text-3xl font-bold mb-8">
+          Dashboard Supervisor
+        </h1>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+
+          <div className="bg-white p-6 rounded-2xl shadow">
+
+            <h2 className="text-xl font-semibold">
+              Total de Bolsistas
+            </h2>
+
+            <p className="text-4xl mt-4 font-bold">
+              {bolsistas.length}
+            </p>
+
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow">
+
+            <h2 className="text-xl font-semibold">
+              Bolsistas Ativos
+            </h2>
+
+            <p className="text-4xl mt-4 font-bold">
+              {ativos.length}
+            </p>
+
+          </div>
+
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow">
+
+          <h2 className="text-2xl font-bold mb-4">
+            Trabalhando Agora
           </h2>
 
           {
-            ativos.length === 0
-              ? <p>Nenhum bolsista trabalhando</p>
-              : ativos.map((ativo) => (
-                <div
-                  key={ativo.email}
-                  className="border-b py-2"
-                >
-                  <p className="font-medium">
-                    {ativo.nome}
-                  </p>
+            ativos.length === 0 ? (
 
-                  <p className="text-sm text-gray-500">
-                    Entrada: {ativo.entrada}
-                  </p>
-                </div>
-              ))
+              <p>
+                Nenhum bolsista em trabalho no momento
+              </p>
+
+            ) : (
+
+              <table className="w-full">
+
+                <thead>
+
+                  <tr className="border-b">
+
+                    <th className="text-left p-2">
+                      Nome
+                    </th>
+
+                    <th className="text-left p-2">
+                      Entrada
+                    </th>
+
+                    <th className="text-left p-2">
+                      Data
+                    </th>
+
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+                  {
+                    ativos.map((ativo, index) => (
+
+                      <tr
+                        key={index}
+                        className="border-b"
+                      >
+
+                        <td className="p-2">
+                          {ativo.nome}
+                        </td>
+
+                        <td className="p-2">
+                          {ativo.entrada}
+                        </td>
+
+                        <td className="p-2">
+                          {ativo.data}
+                        </td>
+
+                      </tr>
+                    ))
+                  }
+
+                </tbody>
+
+              </table>
+            )
           }
+
         </div>
 
-        <div className="bg-white rounded-2xl shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Total de Bolsistas
-          </h2>
+      </main>
 
-          <p className="text-5xl font-bold text-blue-600">
-            {bolsistas.length}
-          </p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">
-          Bolsistas
-        </h2>
-
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left py-3">
-                Nome
-              </th>
-
-              <th className="text-left py-3">
-                E-mail
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {bolsistas.map((bolsista) => (
-              <tr
-                key={bolsista.id}
-                className="border-b"
-              >
-                <td className="py-3">
-                  {bolsista.nome}
-                </td>
-
-                <td className="py-3">
-                  {bolsista.email}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }
