@@ -85,7 +85,7 @@ public class PontoController : ControllerBase
         if (user.TipoUsuario == "Supervisor")
     {
         return BadRequest(
-            "Supervisor não possui registros de ponto"
+            "Supervisor não pode bater saída"
         );
     }
 
