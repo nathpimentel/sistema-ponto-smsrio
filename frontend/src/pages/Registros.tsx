@@ -18,63 +18,81 @@ export default function Registros() {
   const [registros, setRegistros] =
     useState<Registro[]>([]);
 
-  const [busca, setBusca] = useState("");
+  const [busca, setBusca] =
+    useState("");
 
-  const [mes, setMes] = useState("");
+  const [mes, setMes] =
+    useState("");
 
-  const [ano, setAno] = useState("");
-    
+  const [ano, setAno] =
+    useState("");
 
-async function carregarRegistros() {
+  async function carregarRegistros() {
 
-  try {
+    try {
 
-    let url =
-      "/supervisor/registros";
-
-    const params = [];
-
-    if (mes) {
-      params.push(`mes=${mes}`);
-    }
-
-    if (ano) {
-      params.push(`ano=${ano}`);
-    }
-
-    if (busca) {
-      params.push(`busca=${busca}`);
-    }
-
-    if (params.length > 0) {
-      url += `?${params.join("&")}`;
-    }
-
-    const response = await api.get(
-      url,
-      {
-        headers: {
-          Authorization:
-            `Bearer ${localStorage.getItem("token")}`
+      const response = await api.get(
+        "/supervisor/registros",
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
         }
-      }
-    );
+      );
 
-    setRegistros(response.data);
+      setRegistros(response.data);
 
-  } catch (error) {
+    } catch (error) {
 
-    console.log(error);
+      console.log(error);
 
-    alert("Erro ao carregar registros");
+      alert("Erro ao carregar registros");
+    }
   }
-}
 
   useEffect(() => {
 
     carregarRegistros();
 
   }, []);
+
+  const registrosFiltrados =
+    registros.filter((registro) => {
+
+      const matchBusca =
+        busca === "" ||
+
+        registro.nome
+          .toLowerCase()
+          .includes(
+            busca.toLowerCase()
+          ) ||
+
+        registro.email
+          .toLowerCase()
+          .includes(
+            busca.toLowerCase()
+          );
+
+      const matchMes =
+        mes === "" ||
+
+        registro.data
+          .split("/")[1] === mes;
+
+      const matchAno =
+        ano === "" ||
+
+        registro.data
+          .split("/")[2] === ano;
+
+      return (
+        matchBusca &&
+        matchMes &&
+        matchAno
+      );
+    });
 
   return (
     <div className="flex bg-gray-100 min-h-screen">
@@ -89,48 +107,41 @@ async function carregarRegistros() {
 
         <div className="bg-white p-6 rounded-2xl shadow mb-6">
 
-  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-    <input
-      type="text"
-      placeholder="Nome ou email"
-      className="border p-3 rounded-lg"
-      value={busca}
-      onChange={(e) =>
-        setBusca(e.target.value)
-      }
-    />
+            <input
+              type="text"
+              placeholder="Nome ou email"
+              className="border p-3 rounded-lg"
+              value={busca}
+              onChange={(e) =>
+                setBusca(e.target.value)
+              }
+            />
 
-    <input
-      type="number"
-      placeholder="Mês"
-      className="border p-3 rounded-lg"
-      value={mes}
-      onChange={(e) =>
-        setMes(e.target.value)
-      }
-    />
+            <input
+              type="number"
+              placeholder="Mês"
+              className="border p-3 rounded-lg"
+              value={mes}
+              onChange={(e) =>
+                setMes(e.target.value)
+              }
+            />
 
-    <input
-      type="number"
-      placeholder="Ano"
-      className="border p-3 rounded-lg"
-      value={ano}
-      onChange={(e) =>
-        setAno(e.target.value)
-      }
-    />
+            <input
+              type="number"
+              placeholder="Ano"
+              className="border p-3 rounded-lg"
+              value={ano}
+              onChange={(e) =>
+                setAno(e.target.value)
+              }
+            />
 
-    <button
-      onClick={carregarRegistros}
-      className="bg-blue-600 text-white rounded-lg"
-    >
-      Filtrar
-    </button>
+          </div>
 
-  </div>
-
-</div>
+        </div>
 
         <div className="bg-white rounded-2xl shadow overflow-auto">
 
@@ -171,39 +182,41 @@ async function carregarRegistros() {
             <tbody>
 
               {
-                registros.map((registro, index) => (
+                registrosFiltrados.map(
+                  (registro, index) => (
 
-                  <tr
-                    key={index}
-                    className="border-b"
-                  >
+                    <tr
+                      key={index}
+                      className="border-b hover:bg-gray-50"
+                    >
 
-                    <td className="p-4">
-                      {registro.nome}
-                    </td>
+                      <td className="p-4">
+                        {registro.nome}
+                      </td>
 
-                    <td className="p-4">
-                      {registro.email}
-                    </td>
+                      <td className="p-4">
+                        {registro.email}
+                      </td>
 
-                    <td className="p-4">
-                      {registro.data}
-                    </td>
+                      <td className="p-4">
+                        {registro.data}
+                      </td>
 
-                    <td className="p-4">
-                      {registro.entrada}
-                    </td>
+                      <td className="p-4">
+                        {registro.entrada}
+                      </td>
 
-                    <td className="p-4">
-                      {registro.saida}
-                    </td>
+                      <td className="p-4">
+                        {registro.saida}
+                      </td>
 
-                    <td className="p-4">
-                      {registro.tempoTrabalhado}
-                    </td>
+                      <td className="p-4">
+                        {registro.tempoTrabalhado}
+                      </td>
 
-                  </tr>
-                ))
+                    </tr>
+                  )
+                )
               }
 
             </tbody>

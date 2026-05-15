@@ -1,6 +1,12 @@
-import Sidebar from "../components/Sidebar";
+import {
+  useEffect,
+  useState
+} from "react";
 
-import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+
+import Sidebar
+from "../components/Sidebar";
 
 import api from "../services/api";
 
@@ -19,9 +25,11 @@ interface Ativo {
 
 export default function DashboardSupervisor() {
 
-  const [bolsistas, setBolsistas] = useState<Bolsista[]>([]);
+  const [bolsistas, setBolsistas] =
+    useState<Bolsista[]>([]);
 
-  const [ativos, setAtivos] = useState<Ativo[]>([]);
+  const [ativos, setAtivos] =
+    useState<Ativo[]>([]);
 
   async function carregarBolsistas() {
 
@@ -41,7 +49,9 @@ export default function DashboardSupervisor() {
 
     } catch {
 
-      alert("Erro ao carregar bolsistas");
+      toast.error(
+        "Erro ao carregar bolsistas"
+      );
     }
   }
 
@@ -62,11 +72,17 @@ export default function DashboardSupervisor() {
       if (Array.isArray(response.data)) {
 
         setAtivos(response.data);
+
+      } else {
+
+        setAtivos([]);
       }
 
     } catch {
 
-      alert("Erro ao carregar ativos");
+      toast.error(
+        "Erro ao carregar ativos"
+      );
     }
   }
 
@@ -75,6 +91,16 @@ export default function DashboardSupervisor() {
     carregarBolsistas();
 
     carregarAtivos();
+
+    const interval = setInterval(() => {
+
+      carregarBolsistas();
+
+      carregarAtivos();
+
+    }, 10000);
+
+    return () => clearInterval(interval);
 
   }, []);
 
@@ -85,104 +111,154 @@ export default function DashboardSupervisor() {
 
       <main className="flex-1 p-8">
 
-        <h1 className="text-3xl font-bold mb-8">
+        <h1 className="text-4xl font-bold mb-8 text-gray-800">
           Dashboard Supervisor
         </h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
 
-          <div className="bg-white p-6 rounded-2xl shadow">
+          <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
 
-            <h2 className="text-xl font-semibold">
-              Total de Bolsistas
+            <h2 className="text-xl font-semibold text-gray-600">
+              Bolsistas
             </h2>
 
-            <p className="text-4xl mt-4 font-bold">
+            <p className="text-5xl font-bold mt-4 text-blue-600">
               {bolsistas.length}
             </p>
 
           </div>
 
-          <div className="bg-white p-6 rounded-2xl shadow">
+          <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
 
-            <h2 className="text-xl font-semibold">
-              Bolsistas Ativos
+            <h2 className="text-xl font-semibold text-gray-600">
+              Trabalhando Agora
             </h2>
 
-            <p className="text-4xl mt-4 font-bold">
+            <p className="text-5xl font-bold mt-4 text-green-600">
               {ativos.length}
+            </p>
+
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
+
+            <h2 className="text-xl font-semibold text-gray-600">
+              Status Sistema
+            </h2>
+
+            <p className="text-2xl font-bold mt-6 text-green-600">
+              Online
             </p>
 
           </div>
 
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow">
+        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
 
-          <h2 className="text-2xl font-bold mb-4">
-            Trabalhando Agora
-          </h2>
+          <div className="flex items-center justify-between mb-6">
+
+            <h2 className="text-2xl font-bold text-gray-800">
+              Bolsistas Ativos
+            </h2>
+
+            <span className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold">
+              Atualização automática
+            </span>
+
+          </div>
 
           {
             ativos.length === 0 ? (
 
-              <p>
-                Nenhum bolsista em trabalho no momento
-              </p>
+              <div className="text-center py-10">
+
+                <p className="text-gray-500 text-lg">
+                  Nenhum bolsista em trabalho no momento
+                </p>
+
+              </div>
 
             ) : (
 
-              <table className="w-full">
+              <div className="overflow-auto">
 
-                <thead>
+                <table className="w-full">
 
-                  <tr className="border-b">
+                  <thead>
 
-                    <th className="text-left p-2">
-                      Nome
-                    </th>
+                    <tr className="border-b text-gray-600">
 
-                    <th className="text-left p-2">
-                      Entrada
-                    </th>
+                      <th className="text-left p-4">
+                        Nome
+                      </th>
 
-                    <th className="text-left p-2">
-                      Data
-                    </th>
+                      <th className="text-left p-4">
+                        Email
+                      </th>
 
-                  </tr>
+                      <th className="text-left p-4">
+                        Entrada
+                      </th>
 
-                </thead>
+                      <th className="text-left p-4">
+                        Data
+                      </th>
 
-                <tbody>
+                      <th className="text-left p-4">
+                        Status
+                      </th>
 
-                  {
-                    ativos.map((ativo, index) => (
+                    </tr>
 
-                      <tr
-                        key={index}
-                        className="border-b"
-                      >
+                  </thead>
 
-                        <td className="p-2">
-                          {ativo.nome}
-                        </td>
+                  <tbody>
 
-                        <td className="p-2">
-                          {ativo.entrada}
-                        </td>
+                    {
+                      ativos.map((ativo, index) => (
 
-                        <td className="p-2">
-                          {ativo.data}
-                        </td>
+                        <tr
+                          key={index}
+                          className="border-b hover:bg-gray-50 transition"
+                        >
 
-                      </tr>
-                    ))
-                  }
+                          <td className="p-4 font-medium">
+                            {ativo.nome}
+                          </td>
 
-                </tbody>
+                          <td className="p-4 text-gray-600">
+                            {ativo.email}
+                          </td>
 
-              </table>
+                          <td className="p-4">
+                            {ativo.entrada}
+                          </td>
+
+                          <td className="p-4">
+                            {ativo.data}
+                          </td>
+
+                          <td className="p-4">
+
+                            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
+
+                              Ativo
+
+                            </span>
+
+                          </td>
+
+                        </tr>
+                      ))
+                    }
+
+                  </tbody>
+
+                </table>
+
+              </div>
             )
           }
 

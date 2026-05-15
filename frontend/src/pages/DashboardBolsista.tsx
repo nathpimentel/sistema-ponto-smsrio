@@ -1,7 +1,11 @@
+import toast from "react-hot-toast";
+
+
 import {
   useEffect,
   useState
 } from "react";
+
 
 import SidebarBolsista
 from "../components/SidebarBolsista";
@@ -36,111 +40,121 @@ export default function DashboardBolsista() {
       trabalhandoAgora: false
     });
 
-  async function baterEntrada() {
+async function baterEntrada() {
 
-    try {
+  try {
 
-      await api.post(
-        "/ponto/entrada",
-        {},
-        {
-          headers: {
-            Authorization:
-              `Bearer ${localStorage.getItem("token")}`
-          }
+    await api.post(
+      "/ponto/entrada",
+      {},
+      {
+        headers: {
+          Authorization:
+            `Bearer ${localStorage.getItem("token")}`
         }
-      );
+      }
+    );
 
-      alert("Entrada registrada");
-
-      carregarHistorico();
-
-      carregarResumo();
-
-    } catch {
-
-      alert("Erro ao registrar entrada");
-    }
-  }
-
-  async function baterSaida() {
-
-    try {
-
-      await api.post(
-        "/ponto/saida",
-        {},
-        {
-          headers: {
-            Authorization:
-              `Bearer ${localStorage.getItem("token")}`
-          }
-        }
-      );
-
-      alert("Saída registrada");
-
-      carregarHistorico();
-
-      carregarResumo();
-
-    } catch {
-
-      alert("Erro ao registrar saída");
-    }
-  }
-
-  async function carregarHistorico() {
-
-    try {
-
-      const response = await api.get(
-        "/ponto/meus-registros",
-        {
-          headers: {
-            Authorization:
-              `Bearer ${localStorage.getItem("token")}`
-          }
-        }
-      );
-
-      setRegistros(response.data);
-
-    } catch {
-
-      alert("Erro ao carregar histórico");
-    }
-  }
-
-  async function carregarResumo() {
-
-    try {
-
-      const response = await api.get(
-        "/ponto/resumo",
-        {
-          headers: {
-            Authorization:
-              `Bearer ${localStorage.getItem("token")}`
-          }
-        }
-      );
-
-      setResumo(response.data);
-
-    } catch {
-
-      alert("Erro ao carregar resumo");
-    }
-  }
-
-  useEffect(() => {
+    toast.success("Entrada registrada");
 
     carregarHistorico();
 
     carregarResumo();
 
-  }, []);
+  } catch {
+
+    toast.error("Erro ao registrar entrada");
+  }
+}
+
+  async function baterSaida() {
+
+  try {
+
+    await api.post(
+      "/ponto/saida",
+      {},
+      {
+        headers: {
+          Authorization:
+            `Bearer ${localStorage.getItem("token")}`
+        }
+      }
+    );
+
+    toast.success("Saída registrada");
+
+    carregarHistorico();
+
+    carregarResumo();
+
+  } catch {
+
+    toast.error("Erro ao registrar saída");
+  }
+}
+
+ async function carregarHistorico() {
+
+  try {
+
+    const response = await api.get(
+      "/ponto/meus-registros",
+      {
+        headers: {
+          Authorization:
+            `Bearer ${localStorage.getItem("token")}`
+        }
+      }
+    );
+
+    setRegistros(response.data);
+
+  } catch {
+
+    toast.error("Erro ao carregar histórico");
+  }
+}
+
+ async function carregarResumo() {
+
+  try {
+
+    const response = await api.get(
+      "/ponto/resumo",
+      {
+        headers: {
+          Authorization:
+            `Bearer ${localStorage.getItem("token")}`
+        }
+      }
+    );
+
+    setResumo(response.data);
+
+  } catch {
+
+    toast.error("Erro ao carregar resumo");
+  }
+}
+
+useEffect(() => {
+
+  carregarHistorico();
+
+  carregarResumo();
+
+  const interval = setInterval(() => {
+
+    carregarHistorico();
+
+    carregarResumo();
+
+  }, 10000);
+
+  return () => clearInterval(interval);
+
+}, []);
 
   return (
     <div className="flex bg-gray-100 min-h-screen">
@@ -155,7 +169,7 @@ export default function DashboardBolsista() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
 
-          <div className="bg-white rounded-2xl shadow p-6">
+          <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
 
             <h2 className="text-xl font-bold">
               Total Horas
@@ -167,7 +181,7 @@ export default function DashboardBolsista() {
 
           </div>
 
-          <div className="bg-white rounded-2xl shadow p-6">
+          <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
 
             <h2 className="text-xl font-bold">
               Registros
@@ -179,7 +193,7 @@ export default function DashboardBolsista() {
 
           </div>
 
-          <div className="bg-white rounded-2xl shadow p-6">
+          <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
 
             <h2 className="text-xl font-bold">
               Status
@@ -201,39 +215,51 @@ export default function DashboardBolsista() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-          <div className="bg-white rounded-2xl shadow p-6">
+          <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
 
             <h2 className="text-2xl font-bold mb-4">
               Entrada
             </h2>
 
             <button
-              onClick={baterEntrada}
-              className="bg-green-600 text-white px-6 py-3 rounded-lg"
-            >
-              Bater Entrada
-            </button>
+  onClick={baterEntrada}
+  disabled={resumo.trabalhandoAgora}
+  className={`px-6 py-3 rounded-lg text-white transition
+  ${
+    resumo.trabalhandoAgora
+      ? "bg-gray-400 cursor-not-allowed"
+      : "bg-green-600 hover:bg-green-700"
+  }`}
+>
+  Bater Entrada
+</button>
 
           </div>
 
-          <div className="bg-white rounded-2xl shadow p-6">
+          <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
 
             <h2 className="text-2xl font-bold mb-4">
               Saída
             </h2>
 
             <button
-              onClick={baterSaida}
-              className="bg-red-600 text-white px-6 py-3 rounded-lg"
-            >
-              Bater Saída
-            </button>
+  onClick={baterSaida}
+  disabled={!resumo.trabalhandoAgora}
+  className={`px-6 py-3 rounded-lg text-white transition
+  ${
+    !resumo.trabalhandoAgora
+      ? "bg-gray-400 cursor-not-allowed"
+      : "bg-red-600 hover:bg-red-700"
+  }`}
+>
+  Bater Saída
+</button>
 
           </div>
 
         </div>
 
-        <div className="bg-white rounded-2xl shadow p-6 mt-8">
+        <div className=" bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
 
           <h2 className="text-2xl font-bold mb-4">
             Meu Histórico

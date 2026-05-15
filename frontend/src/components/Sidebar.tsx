@@ -20,6 +20,13 @@ export default function Sidebar() {
 
       <nav className="flex flex-col gap-4">
 
+        <Link
+  to="/dashboard"
+  className="hover:bg-blue-600 p-3 rounded-lg"
+>
+  Página Inicial
+</Link>
+
 <Link
   to="/registros"
   className="hover:bg-blue-600 p-3 rounded-lg"

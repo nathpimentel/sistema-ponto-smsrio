@@ -1,3 +1,5 @@
+import { Toaster } from "react-hot-toast";
+
 import DashboardBolsista
 from "./pages/DashboardBolsista";
 import Registros from "./pages/Registros";
@@ -16,6 +18,8 @@ import Relatorios from "./pages/Relatorios";
 import PrivateRoute from "./routes/PrivateRoute";
 
 export default function App() {
+
+  <Toaster position="top-right" />
 
   return (
     <Routes>

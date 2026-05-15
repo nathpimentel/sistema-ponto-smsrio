@@ -4,6 +4,9 @@ import Sidebar from "../components/Sidebar";
 
 import api from "../services/api";
 
+import { gerarPdfPresenca }
+from "../utils/gerarPdfPresenca";
+
 export default function Relatorios() {
 
   const [busca, setBusca] = useState("");
@@ -12,44 +15,32 @@ export default function Relatorios() {
 
   const [ano, setAno] = useState("");
 
-  async function gerarRelatorio() {
+async function gerarRelatorio() {
 
-    try {
+  try {
 
-      const response = await api.get(
-        `/supervisor/relatorio-pdf?busca=${busca}&mes=${mes}&ano=${ano}`,
-        {
-          responseType: "blob",
-
-          headers: {
-            Authorization:
-              `Bearer ${localStorage.getItem("token")}`
-          }
+    const response = await api.get(
+      `/supervisor/registros?mes=${mes}&ano=${ano}&busca=${busca}`,
+      {
+        headers: {
+          Authorization:
+            `Bearer ${localStorage.getItem("token")}`
         }
-      );
+      }
+    );
 
-      const url = window.URL.createObjectURL(
-        new Blob([response.data])
-      );
+    await gerarPdfPresenca(
+      busca || "Bolsista",
+      Number(mes),
+      Number(ano),
+      response.data
+    );
 
-      const link = document.createElement("a");
+  } catch {
 
-      link.href = url;
-
-      link.setAttribute(
-        "download",
-        "relatorio.pdf"
-      );
-
-      document.body.appendChild(link);
-
-      link.click();
-
-    } catch {
-
-      alert("Erro ao gerar relatório");
-    }
+    alert("Erro ao gerar relatório");
   }
+}
 
   return (
     <div className="flex bg-gray-100 min-h-screen">
@@ -62,7 +53,7 @@ export default function Relatorios() {
           Relatórios
         </h1>
 
-        <div className="bg-white p-6 rounded-2xl shadow max-w-xl">
+        <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100">
 
           <input
             type="text"
@@ -96,7 +87,7 @@ export default function Relatorios() {
 
           <button
             onClick={gerarRelatorio}
-            className="w-full bg-blue-600 text-white p-3 rounded-lg"
+            className="w-full bg-blue-600 hover:bg-blue-700 transition text-white p-4 rounded-xl font-semibold"
           >
             Gerar PDF
           </button>
