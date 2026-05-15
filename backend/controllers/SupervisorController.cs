@@ -80,7 +80,46 @@ public IActionResult BuscarTodosRegistros(
         return Ok(registros);
     }
 
+[Authorize(Roles = "Supervisor")]
+[HttpPut("aprovar/{id}")]
+public IActionResult AprovarUsuario(int id)
+{
+    var user = _context.Users
+        .FirstOrDefault(u => u.Id == id);
 
+    if (user == null)
+    {
+        return NotFound();
+    }
+
+    user.Aprovado = true;
+
+    _context.SaveChanges();
+
+    return Ok(
+        "Usuário aprovado"
+    );
+}
+
+[Authorize(Roles = "Supervisor")]
+[HttpGet("pendentes")]
+public IActionResult UsuariosPendentes()
+{
+    var usuarios = _context.Users
+        .Where(u =>
+            !u.Aprovado &&
+            u.TipoUsuario == "Bolsista"
+        )
+        .Select(u => new
+        {
+            u.Id,
+            u.Nome,
+            u.Email
+        })
+        .ToList();
+
+    return Ok(usuarios);
+}
 
 [Authorize(Roles = "Supervisor")]
 [HttpGet("relatorio-pdf")]

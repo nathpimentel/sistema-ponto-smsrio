@@ -44,16 +44,54 @@ public class AuthController : ControllerBase
 public IActionResult Register(User user)
 {
     if (
+        string.IsNullOrWhiteSpace(user.Nome) ||
+        string.IsNullOrWhiteSpace(user.Email) ||
+        string.IsNullOrWhiteSpace(user.SenhaHash)
+    )
+    {
+        return BadRequest(
+            "Nome, email e senha são obrigatórios"
+        );
+    }
+
+    if (
         user.TipoUsuario != "Supervisor" &&
         user.TipoUsuario != "Bolsista"
     )
     {
-        return BadRequest("Tipo de usuário inválido");
+        return BadRequest(
+            "Tipo de usuário inválido"
+        );
     }
 
-    var senhaHash = BCrypt.Net.BCrypt.HashPassword(user.SenhaHash);
+    var emailExiste = _context.Users
+        .Any(u => u.Email == user.Email);
+
+    if (emailExiste)
+    {
+        return BadRequest(
+            "Email já cadastrado"
+        );
+    }
+
+    var senhaHash =
+        BCrypt.Net.BCrypt.HashPassword(
+            user.SenhaHash
+        );
 
     user.SenhaHash = senhaHash;
+
+    // APROVAÇÃO AUTOMÁTICA
+    // apenas supervisor entra direto
+
+    if (user.TipoUsuario == "Supervisor")
+    {
+        user.Aprovado = true;
+    }
+    else
+    {
+        user.Aprovado = false;
+    }
 
     _context.Users.Add(user);
 
@@ -61,7 +99,8 @@ public IActionResult Register(User user)
 
     return Ok(new
     {
-        mensagem = "Usuário cadastrado com sucesso"
+        mensagem =
+            "Usuário cadastrado com sucesso"
     });
 }
 
@@ -74,6 +113,13 @@ public IActionResult Register(User user)
         {
             return Unauthorized("Usuário inválido");
         }
+
+        if (!user.Aprovado)
+{
+    return Unauthorized(
+        "Aguardando aprovação do supervisor"
+    );
+}
 
         var senhaCorreta = BCrypt.Net.BCrypt.Verify(dto.Senha, user.SenhaHash);
 

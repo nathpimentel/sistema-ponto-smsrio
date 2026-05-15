@@ -12,4 +12,6 @@ public class User
 
     public string TipoUsuario { get; set; } = string.Empty;
 
+    public bool Aprovado { get; set; } = false;
+
 }

@@ -1,5 +1,7 @@
 import { Toaster } from "react-hot-toast";
 
+import Register from "./pages/Register";
+
 import DashboardBolsista
 from "./pages/DashboardBolsista";
 import Registros from "./pages/Registros";
@@ -23,6 +25,12 @@ export default function App() {
 
   return (
     <Routes>
+
+<Route
+  path="/register"
+  element={<Register />}
+/>
+
       <Route
   path="/bolsista"
   element={

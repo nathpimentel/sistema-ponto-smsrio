@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+  Link,
+  useNavigate
+} from "react-router-dom";
 
 import api from "../services/api";
 
@@ -86,6 +89,19 @@ if (
         >
           Entrar
         </button>
+
+        <p className="text-center mt-4 text-gray-600">
+
+  Não possui conta?
+
+  <Link
+    to="/register"
+    className="text-blue-600 ml-2 font-semibold"
+  >
+    Criar conta
+  </Link>
+
+</p>
       </form>
     </div>
   );
