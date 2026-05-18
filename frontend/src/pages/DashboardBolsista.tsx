@@ -5,6 +5,7 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 import {
+  GoClock,
   GoPerson,
   GoSignIn,
   GoSignOut
@@ -29,17 +30,10 @@ interface Resumo {
   inicioExpediente?: string | null;
 }
 
-function mensagemErroPadrao(
-  error: unknown,
-  fallback: string
-) {
-  if (
-    axios.isAxiosError(error) &&
-    typeof error.response?.data === "string"
-  ) {
+function mensagemErroPadrao(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error) && typeof error.response?.data === "string") {
     return error.response.data;
   }
-
   return fallback;
 }
 
@@ -61,12 +55,7 @@ export default function DashboardBolsista() {
       carregarHistorico();
       carregarResumo();
     } catch (error) {
-      toast.error(
-        mensagemErroPadrao(
-          error,
-          "Erro ao registrar entrada"
-        )
-      );
+      toast.error(mensagemErroPadrao(error, "Erro ao registrar entrada"));
     }
   }
 
@@ -77,12 +66,7 @@ export default function DashboardBolsista() {
       carregarHistorico();
       carregarResumo();
     } catch (error) {
-      toast.error(
-        mensagemErroPadrao(
-          error,
-          "Erro ao registrar saída"
-        )
-      );
+      toast.error(mensagemErroPadrao(error, "Erro ao registrar saída"));
     }
   }
 
@@ -117,37 +101,24 @@ export default function DashboardBolsista() {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setAgora(new Date());
-    }, 1000);
-
+    const interval = setInterval(() => setAgora(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
 
   function formatarCronometro() {
-    if (!resumo.trabalhandoAgora || !resumo.inicioExpediente) {
-      return "00:00:00";
-    }
+    if (!resumo.trabalhandoAgora || !resumo.inicioExpediente) return "00:00:00";
 
     const inicio = new Date(resumo.inicioExpediente);
-    const diferencaSegundos = Math.max(
-      0,
-      Math.floor((agora.getTime() - inicio.getTime()) / 1000)
-    );
-    const horas = Math.floor(diferencaSegundos / 3600);
-    const minutos = Math.floor((diferencaSegundos % 3600) / 60);
-    const segundos = diferencaSegundos % 60;
+    const diff = Math.max(0, Math.floor((agora.getTime() - inicio.getTime()) / 1000));
+    const h = Math.floor(diff / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    const s = diff % 60;
 
-    return `${horas.toString().padStart(2, "0")}:${minutos
-      .toString()
-      .padStart(2, "0")}:${segundos.toString().padStart(2, "0")}`;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   }
 
   function horarioInicioExpediente() {
-    if (!resumo.inicioExpediente) {
-      return "--:--";
-    }
-
+    if (!resumo.inicioExpediente) return "--:--";
     return new Date(resumo.inicioExpediente).toLocaleTimeString("pt-BR", {
       hour: "2-digit",
       minute: "2-digit"
@@ -161,44 +132,63 @@ export default function DashboardBolsista() {
       <main className="app-main">
         <div className="page-heading">
           <div>
-            <p className="page-kicker">
-              Meu painel
-            </p>
-            <h1 className="page-title">
-              Bem-vindo(a), {nome}
-            </h1>
+            <p className="page-kicker">Meu painel</p>
+            <h1 className="page-title">Olá, {nome}</h1>
             <p className="page-subtitle">
               Registre sua jornada e acompanhe seu histórico mensal.
             </p>
           </div>
 
-          <Link
-            to="/bolsista/perfil"
-            className="secondary-button"
-          >
+          <Link to="/bolsista/perfil" className="secondary-button">
             <GoPerson aria-hidden="true" />
-            Abrir perfil
+            Meu perfil
           </Link>
         </div>
 
-        <section className="welcome-band mb-6">
-          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">
-                {resumo.trabalhandoAgora
-                  ? "Seu expediente esta em andamento"
-                  : "Pronto para registrar sua jornada"}
-              </h2>
-              <p className="mt-1 text-slate-600">
-                Use os botões de ponto conforme entrada e saída do dia.
-              </p>
+        {/* Punch section */}
+        <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="panel" style={{ borderRadius: 12, display: "flex", flexDirection: "column" }}>
+            <div className={`punch-icon ${resumo.trabalhandoAgora ? "punch-icon-muted" : "punch-icon-entrada"}`}>
+              <GoSignIn aria-hidden="true" />
             </div>
-            <span className={`status-pill ${resumo.trabalhandoAgora ? "status-ok" : "status-muted"}`}>
-              {resumo.trabalhandoAgora ? "Trabalhando" : "Fora do expediente"}
-            </span>
+            <h2 className="text-xl font-bold text-slate-900">Registrar entrada</h2>
+            <p className="mt-1 text-sm text-slate-500" style={{ flex: 1 }}>
+              {resumo.trabalhandoAgora
+                ? "Você já está em expediente desde as " + horarioInicioExpediente() + "."
+                : "Use quando iniciar sua jornada do dia."}
+            </p>
+            <button
+              onClick={baterEntrada}
+              disabled={resumo.trabalhandoAgora}
+              className={`mt-5 w-full ${resumo.trabalhandoAgora ? "quiet-button" : "primary-button"}`}
+            >
+              <GoSignIn aria-hidden="true" />
+              {resumo.trabalhandoAgora ? "Entrada já registrada" : "Bater entrada"}
+            </button>
+          </div>
+
+          <div className="panel" style={{ borderRadius: 12, display: "flex", flexDirection: "column" }}>
+            <div className={`punch-icon ${resumo.trabalhandoAgora ? "punch-icon-saida" : "punch-icon-muted"}`}>
+              <GoSignOut aria-hidden="true" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900">Registrar saída</h2>
+            <p className="mt-1 text-sm text-slate-500" style={{ flex: 1 }}>
+              {resumo.trabalhandoAgora
+                ? "Encerre seu expediente ao finalizar o turno."
+                : "Nenhum expediente ativo no momento."}
+            </p>
+            <button
+              onClick={baterSaida}
+              disabled={!resumo.trabalhandoAgora}
+              className={`mt-5 w-full ${resumo.trabalhandoAgora ? "danger-button" : "quiet-button"}`}
+            >
+              <GoSignOut aria-hidden="true" />
+              {resumo.trabalhandoAgora ? "Bater saída" : "Sem entrada pendente"}
+            </button>
           </div>
         </section>
 
+        {/* Metrics */}
         <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
           <div className="metric-card">
             <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
@@ -209,7 +199,7 @@ export default function DashboardBolsista() {
             </strong>
           </div>
 
-          <div className="metric-card live-clock-card">
+          <div className="metric-card live-clock-card" style={{ gridColumn: "span 2" }}>
             <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
               Expediente atual
             </p>
@@ -218,8 +208,8 @@ export default function DashboardBolsista() {
             </strong>
             <p className="mt-2 text-sm text-slate-500">
               {resumo.trabalhandoAgora
-                ? `Entrada as ${horarioInicioExpediente()}`
-                : "Cronometro inicia na entrada"}
+                ? `Entrada às ${horarioInicioExpediente()}`
+                : "Cronômetro inicia na entrada"}
             </p>
           </div>
 
@@ -231,12 +221,13 @@ export default function DashboardBolsista() {
               {resumo.totalRegistros}
             </strong>
           </div>
+        </section>
 
+        {/* Status orb card */}
+        <section className="mb-6">
           <div
             className={`status-card ${
-              resumo.trabalhandoAgora
-                ? "status-card-active"
-                : "status-card-resting"
+              resumo.trabalhandoAgora ? "status-card-active" : "status-card-resting"
             }`}
           >
             <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
@@ -259,65 +250,26 @@ export default function DashboardBolsista() {
             </div>
 
             <p className="mt-3 text-xl font-bold text-slate-900">
-              {resumo.trabalhandoAgora
-                ? "Em expediente"
-                : "Sem expediente ativo"}
+              {resumo.trabalhandoAgora ? "Em expediente" : "Sem expediente ativo"}
             </p>
           </div>
         </section>
 
-        <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="panel">
-            <h2 className="text-xl font-bold text-slate-900">
-              Registrar entrada
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Use quando iniciar sua jornada do dia.
-            </p>
-            <button
-              onClick={baterEntrada}
-              disabled={resumo.trabalhandoAgora}
-              className={`mt-5 w-full ${
-                resumo.trabalhandoAgora
-                  ? "quiet-button"
-                  : "primary-button"
-              }`}
-            >
-              <GoSignIn aria-hidden="true" />
-              {resumo.trabalhandoAgora ? "Entrada ja registrada" : "Bater entrada"}
-            </button>
-          </div>
-
-          <div className="panel">
-            <h2 className="text-xl font-bold text-slate-900">
-              Registrar saída
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Use ao encerrar sua jornada.
-            </p>
-            <button
-              onClick={baterSaida}
-              disabled={!resumo.trabalhandoAgora}
-              className={`mt-5 w-full ${
-                resumo.trabalhandoAgora
-                  ? "danger-button"
-                  : "quiet-button"
-              }`}
-            >
-              <GoSignOut aria-hidden="true" />
-              {resumo.trabalhandoAgora ? "Bater saida" : "Sem entrada pendente"}
-            </button>
-          </div>
-        </section>
-
+        {/* History */}
         <section className="panel">
-          <div className="mb-5">
-            <h2 className="text-2xl font-bold text-slate-900">
-              Histórico de ponto
-            </h2>
-            <p className="text-sm text-slate-500">
-              Ultimos registros de entrada, saída e horas trabalhadas.
-            </p>
+          <div className="mb-5 flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-teal-700"
+              style={{ background: "#e8f2f5", fontSize: "1.1rem" }}
+            >
+              <GoClock aria-hidden="true" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Histórico de ponto</h2>
+              <p className="text-sm text-slate-500">
+                Últimos registros de entrada, saída e horas trabalhadas.
+              </p>
+            </div>
           </div>
 
           <div className="overflow-auto">
@@ -326,16 +278,14 @@ export default function DashboardBolsista() {
                 <tr>
                   <th>Data</th>
                   <th>Entrada</th>
-                  <th>Saida</th>
+                  <th>Saída</th>
                   <th>Horas</th>
                 </tr>
               </thead>
               <tbody>
                 {registros.length === 0 ? (
                   <tr>
-                    <td colSpan={4}>
-                      Nenhum registro encontrado.
-                    </td>
+                    <td colSpan={4}>Nenhum registro encontrado.</td>
                   </tr>
                 ) : (
                   registros.map((registro, index) => (

@@ -240,8 +240,51 @@ public IActionResult Register(RegisterDto dto)
             tipoUsuario = user.TipoUsuario,
             unidade = user.Unidade,
             cursoFaculdade = user.CursoFaculdade,
-            cargaHorariaSemanal = user.CargaHorariaSemanal
+            cargaHorariaSemanal = user.CargaHorariaSemanal,
+            fotoBase64 = user.FotoBase64
         });
+    }
+
+    [Authorize]
+    [HttpPost("foto-perfil")]
+    public async Task<IActionResult> UploadFotoPerfil(IFormFile foto)
+    {
+        var user = ObterUsuarioLogado();
+
+        if (user == null)
+        {
+            return Unauthorized();
+        }
+
+        if (foto == null || foto.Length == 0)
+        {
+            return BadRequest("Nenhuma foto enviada");
+        }
+
+        var tiposPermitidos = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+
+        if (!tiposPermitidos.Contains(foto.ContentType.ToLower()))
+        {
+            return BadRequest("Formato inválido. Use JPEG, PNG, GIF ou WebP");
+        }
+
+        const long tamanhoMaximo = 2 * 1024 * 1024;
+
+        if (foto.Length > tamanhoMaximo)
+        {
+            return BadRequest("A foto deve ter no máximo 2MB");
+        }
+
+        using var ms = new MemoryStream();
+        await foto.CopyToAsync(ms);
+        var bytes = ms.ToArray();
+        var base64 = Convert.ToBase64String(bytes);
+        var dataUrl = $"data:{foto.ContentType};base64,{base64}";
+
+        user.FotoBase64 = dataUrl;
+        _context.SaveChanges();
+
+        return Ok(new { fotoBase64 = dataUrl });
     }
 
     [Authorize]

@@ -30,6 +30,7 @@ interface Usuario {
   unidade: string;
   cursoFaculdade?: string;
   cargaHorariaSemanal?: number | null;
+  fotoBase64?: string | null;
 }
 
 export default function AdminUsuarios() {
@@ -43,24 +44,26 @@ export default function AdminUsuarios() {
   const usuariosFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
 
-    return usuarios.filter((usuario) =>
-      (
-        !termo ||
-        usuario.nome.toLowerCase().includes(termo) ||
-        usuario.email.toLowerCase().includes(termo) ||
-        usuario.tipoUsuario.toLowerCase().includes(termo) ||
-        (usuario.unidade || "").toLowerCase().includes(termo)
-      ) &&
-      (
-        filtroStatus === "todos" ||
-        (filtroStatus === "ativos" && usuario.aprovado) ||
-        (filtroStatus === "pendentes" && !usuario.aprovado)
-      ) &&
-      (
-        filtroTipo === "todos" ||
-        usuario.tipoUsuario === filtroTipo
+    return usuarios
+      .filter((usuario) =>
+        (
+          !termo ||
+          usuario.nome.toLowerCase().includes(termo) ||
+          usuario.email.toLowerCase().includes(termo) ||
+          usuario.tipoUsuario.toLowerCase().includes(termo) ||
+          (usuario.unidade || "").toLowerCase().includes(termo)
+        ) &&
+        (
+          filtroStatus === "todos" ||
+          (filtroStatus === "ativos" && usuario.aprovado) ||
+          (filtroStatus === "pendentes" && !usuario.aprovado)
+        ) &&
+        (
+          filtroTipo === "todos" ||
+          usuario.tipoUsuario === filtroTipo
+        )
       )
-    );
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }));
   }, [usuarios, busca, filtroStatus, filtroTipo]);
 
   const pendentes = usuarios.filter((usuario) => !usuario.aprovado).length;
@@ -306,10 +309,18 @@ export default function AdminUsuarios() {
                       <td>
                         <div className="user-cell">
                           <span className="user-avatar">
-                            {usuario.nome.charAt(0).toUpperCase()}
+                            {usuario.fotoBase64 ? (
+                              <img
+                                src={usuario.fotoBase64}
+                                alt={usuario.nome}
+                                className="user-avatar-img"
+                              />
+                            ) : (
+                              usuario.nome.charAt(0).toUpperCase()
+                            )}
                           </span>
-                          <div>
-                            <p className="font-bold text-slate-900">
+                          <div className="min-w-0">
+                            <p className="truncate font-bold text-slate-900">
                               {usuario.nome}
                             </p>
                             <p className="break-all text-sm text-slate-500">

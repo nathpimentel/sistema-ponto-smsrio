@@ -1,12 +1,12 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import type { IconType } from "react-icons";
 import {
-  GoChevronRight,
   GoClock,
   GoFile,
   GoHome,
   GoPeople,
   GoPerson,
+  GoShieldCheck,
   GoSignOut
 } from "react-icons/go";
 
@@ -16,13 +16,14 @@ interface SidebarLink {
   to: string;
   label: string;
   icon: IconType;
+  end?: boolean;
 }
 
 const links: SidebarLink[] = [
-  { to: "/dashboard", label: "Visao geral", icon: GoHome },
-  { to: "/registros", label: "Registros de ponto", icon: GoClock },
-  { to: "/relatorios", label: "Relatorios", icon: GoFile },
-  { to: "/admin-usuarios", label: "Usuarios", icon: GoPeople },
+  { to: "/dashboard", label: "Visão Geral", icon: GoHome, end: true },
+  { to: "/registros", label: "Registros", icon: GoClock },
+  { to: "/relatorios", label: "Relatórios", icon: GoFile },
+  { to: "/admin-usuarios", label: "Usuários", icon: GoPeople },
   { to: "/perfil", label: "Perfil", icon: GoPerson }
 ];
 
@@ -37,58 +38,52 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar-shell">
-      <div className="sidebar-logo-card">
-        <img
-          src={logo}
-          alt="Prefeitura do Rio Saude"
-          className="w-full"
-        />
+      <div className="sidebar-logo-section">
+        <div className="sidebar-logo-card">
+          <img src={logo} alt="Prefeitura do Rio · Saúde" className="w-full" />
+        </div>
       </div>
 
-      <div className="mb-8">
-        <p className="text-sm text-white/60">
-          Supervisao
-        </p>
-        <h1 className="text-xl font-bold leading-tight">
-          Sistema de Ponto
-        </h1>
-        <p className="mt-2 text-sm text-white/70">
-          {nome}
-        </p>
+      <div className="sidebar-user-section">
+        <div className="sidebar-avatar">
+          {nome.charAt(0).toUpperCase()}
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <p className="sidebar-username">{nome}</p>
+          <p className="sidebar-role">
+            <GoShieldCheck aria-hidden="true" />
+            Supervisor
+          </p>
+        </div>
       </div>
 
       <nav className="sidebar-nav">
         {links.map((link) => {
           const Icon = link.icon;
-
           return (
             <NavLink
               key={link.to}
               to={link.to}
+              end={link.end}
               className={({ isActive }) =>
-                `nav-link ${isActive ? "bg-white/10 text-white border-white/20" : ""}`
+                `nav-link${isActive ? " nav-link-active" : ""}`
               }
             >
               <span className="nav-link-label">
                 <Icon aria-hidden="true" />
                 {link.label}
               </span>
-              <GoChevronRight
-                aria-hidden="true"
-                className="text-white/35"
-              />
             </NavLink>
           );
         })}
-
-        <button
-          onClick={logout}
-          className="nav-button"
-        >
-          <GoSignOut aria-hidden="true" />
-          Sair
-        </button>
       </nav>
+
+      <div className="sidebar-logout">
+        <button onClick={logout} className="nav-button">
+          <GoSignOut aria-hidden="true" />
+          Sair do sistema
+        </button>
+      </div>
     </aside>
   );
 }

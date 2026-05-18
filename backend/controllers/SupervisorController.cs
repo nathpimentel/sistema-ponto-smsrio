@@ -44,7 +44,8 @@ public IActionResult Usuarios()
             u.Unidade,
             u.CursoFaculdade,
             u.CargaHorariaSemanal,
-            u.Aprovado
+            u.Aprovado,
+            u.FotoBase64
         })
         .ToList();
 

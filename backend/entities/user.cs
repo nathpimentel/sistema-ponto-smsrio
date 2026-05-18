@@ -23,5 +23,5 @@ public class User
     
     public bool Aprovado { get; set; } = false;
 
-
+    public string? FotoBase64 { get; set; }
 }
