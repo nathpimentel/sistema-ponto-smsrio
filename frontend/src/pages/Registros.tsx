@@ -48,7 +48,7 @@ const meses = [
   { valor: "", label: "Todos os meses" },
   { valor: "01", label: "Janeiro" },
   { valor: "02", label: "Fevereiro" },
-  { valor: "03", label: "Marco" },
+  { valor: "03", label: "Março" },
   { valor: "04", label: "Abril" },
   { valor: "05", label: "Maio" },
   { valor: "06", label: "Junho" },
@@ -64,11 +64,11 @@ const diasSemana = [
   { valor: "", label: "Todos os dias" },
   { valor: "0", label: "Domingo" },
   { valor: "1", label: "Segunda-feira" },
-  { valor: "2", label: "Terca-feira" },
+  { valor: "2", label: "Terça-feira" },
   { valor: "3", label: "Quarta-feira" },
   { valor: "4", label: "Quinta-feira" },
   { valor: "5", label: "Sexta-feira" },
-  { valor: "6", label: "Sabado" }
+  { valor: "6", label: "Sábado" }
 ];
 
 function dataBrParaDate(data: string) {
@@ -281,7 +281,7 @@ export default function Registros() {
               Registros de ponto
             </h1>
             <p className="page-subtitle">
-              Consulte entradas, saidas e horas registradas em pastas por bolsista.
+              Consulte entradas, saídas e horas registradas em pastas por bolsista.
             </p>
           </div>
         </div>
@@ -292,7 +292,7 @@ export default function Registros() {
               Encontrar pasta
             </h2>
             <p className="text-sm text-slate-500">
-              Use estes filtros para localizar bolsistas no historico geral.
+              Use estes filtros para localizar bolsistas no histórico geral.
             </p>
           </div>
 
@@ -312,7 +312,7 @@ export default function Registros() {
 
             <div>
               <label className="field-label">
-                Mes
+                Mês
               </label>
               <select
                 className="field"
@@ -450,7 +450,7 @@ export default function Registros() {
 
                           <div>
                             <label className="field-label">
-                              Filtrar por mes
+                              Filtrar por mês
                             </label>
                             <select
                               className="field"

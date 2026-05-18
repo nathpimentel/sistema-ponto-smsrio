@@ -69,7 +69,7 @@ export default function Relatorios() {
 
   async function gerarRelatorio() {
     if (!mes || !ano) {
-      toast.error("Informe mes e ano para gerar o relatorio");
+      toast.error("Informe mês e ano para gerar o relatório");
       return;
     }
 
@@ -96,9 +96,9 @@ export default function Relatorios() {
         response.data
       );
 
-      toast.success("Relatorio gerado");
+      toast.success("Relatório gerado");
     } catch {
-      toast.error("Erro ao gerar relatorio");
+      toast.error("Erro ao gerar relatório");
     } finally {
       setCarregando(false);
     }
@@ -116,13 +116,13 @@ export default function Relatorios() {
         <div className="page-heading">
           <div>
             <p className="page-kicker">
-              Relatorios
+              Relatórios
             </p>
             <h1 className="page-title">
-              Relatorio individual de ponto
+              Relatório individual de ponto
             </h1>
             <p className="page-subtitle">
-              Gere PDFs com os dias em que o bolsista registrou entrada e saida.
+              Gere PDFs com os dias em que o bolsista registrou entrada e saída.
             </p>
           </div>
         </div>
@@ -155,7 +155,7 @@ export default function Relatorios() {
 
             <div>
               <label className="field-label">
-                Mes
+                Mês
               </label>
               <select
                 className="field"
@@ -220,7 +220,7 @@ export default function Relatorios() {
                   <th>Curso</th>
                   <th>Unidade</th>
                   <th>Carga</th>
-                  <th>Acao</th>
+                  <th>Ação</th>
                 </tr>
               </thead>
               <tbody>

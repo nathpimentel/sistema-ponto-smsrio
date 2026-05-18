@@ -70,13 +70,13 @@ export default function DashboardSupervisor() {
         <div className="page-heading">
           <div>
             <p className="page-kicker">
-              Visao geral
+              Visao Geral
             </p>
             <h1 className="page-title">
-              Bem-vindo, {nome}
+              Bem-vindo(a), {nome}
             </h1>
             <p className="page-subtitle">
-              Acompanhe a equipe em expediente e acesse rapidamente as rotinas do ponto.
+              Acompanhe a equipe em expediente e acesse rápidamente as rotinas do ponto.
             </p>
           </div>
 
@@ -85,7 +85,7 @@ export default function DashboardSupervisor() {
             className="primary-button"
           >
             <GoFile aria-hidden="true" />
-            Gerar relatorio
+            Gerar Relatório
           </Link>
         </div>
 
@@ -93,15 +93,15 @@ export default function DashboardSupervisor() {
           <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
             <div>
               <h2 className="text-xl font-bold text-slate-900">
-                Painel de supervisao atualizado automaticamente
+                Painel de supervisão atualizado automaticamente
               </h2>
               <p className="mt-1 text-slate-600">
-                Os indicadores sao atualizados a cada poucos segundos para manter a rotina visivel.
+                Os indicadores são atualizados a cada poucos segundos para manter a rotina visível.
               </p>
             </div>
             <span className="status-pill status-ok">
               <GoCheckCircle aria-hidden="true" />
-              Sistema online
+              Sistema Online
             </span>
           </div>
         </section>
@@ -109,7 +109,7 @@ export default function DashboardSupervisor() {
         <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="metric-card">
             <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
-              Bolsistas cadastrados
+              Bolsistas Cadastrados
             </p>
             <strong className="mt-3 block text-4xl text-slate-900">
               {bolsistas.length}
@@ -118,7 +118,7 @@ export default function DashboardSupervisor() {
 
           <div className="metric-card">
             <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
-              Trabalhando agora
+              Trabalhando Agora
             </p>
             <strong className="mt-3 block text-4xl text-emerald-700">
               {ativos.length}
@@ -127,17 +127,17 @@ export default function DashboardSupervisor() {
 
           <div className="metric-card">
             <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
-              Proxima acao
+              Proxima Ação
             </p>
             <strong className="mt-3 block text-xl text-teal-800">
-              Revisar registros
+              Revisar Registros
             </strong>
             <Link
               to="/registros"
               className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-teal-700 hover:text-teal-900"
             >
               <GoClock aria-hidden="true" />
-              Abrir historico
+              Abrir Histórico
             </Link>
           </div>
         </section>
@@ -146,14 +146,14 @@ export default function DashboardSupervisor() {
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-2xl font-bold text-slate-900">
-                Equipe em expediente
+                Equipe em Expediente
               </h2>
               <p className="text-sm text-slate-500">
-                Bolsistas com entrada registrada e saida pendente.
+                Bolsistas com entrada registrada e saída pendente.
               </p>
             </div>
             <span className="status-pill status-muted">
-              Atualizacao automatica
+              Atualização Automática
             </span>
           </div>
 
@@ -163,7 +163,7 @@ export default function DashboardSupervisor() {
                 Nenhum bolsista em expediente no momento
               </p>
               <p className="mt-1 text-sm text-slate-500">
-                Quando alguem registrar entrada, aparecera aqui.
+                Quando alguém registrar entrada, aparecerá aqui.
               </p>
             </div>
           ) : (
@@ -189,7 +189,7 @@ export default function DashboardSupervisor() {
                       <td>{ativo.data}</td>
                       <td>
                         <span className="status-pill status-ok">
-                          Em expediente
+                          Em Expediente
                         </span>
                       </td>
                     </tr>

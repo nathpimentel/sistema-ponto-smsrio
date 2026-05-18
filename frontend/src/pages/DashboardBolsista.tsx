@@ -73,14 +73,14 @@ export default function DashboardBolsista() {
   async function baterSaida() {
     try {
       await api.post("/ponto/saida", {});
-      toast.success("Saida registrada");
+      toast.success("Saída registrada");
       carregarHistorico();
       carregarResumo();
     } catch (error) {
       toast.error(
         mensagemErroPadrao(
           error,
-          "Erro ao registrar saida"
+          "Erro ao registrar saída"
         )
       );
     }
@@ -91,7 +91,7 @@ export default function DashboardBolsista() {
       const response = await api.get("/ponto/meus-registros");
       setRegistros(response.data);
     } catch {
-      toast.error("Erro ao carregar historico");
+      toast.error("Erro ao carregar histórico");
     }
   }
 
@@ -165,10 +165,10 @@ export default function DashboardBolsista() {
               Meu painel
             </p>
             <h1 className="page-title">
-              Bem-vindo, {nome}
+              Bem-vindo(a), {nome}
             </h1>
             <p className="page-subtitle">
-              Registre sua jornada e acompanhe seu historico mensal.
+              Registre sua jornada e acompanhe seu histórico mensal.
             </p>
           </div>
 
@@ -190,7 +190,7 @@ export default function DashboardBolsista() {
                   : "Pronto para registrar sua jornada"}
               </h2>
               <p className="mt-1 text-slate-600">
-                Use os botoes de ponto conforme entrada e saida do dia.
+                Use os botões de ponto conforme entrada e saída do dia.
               </p>
             </div>
             <span className={`status-pill ${resumo.trabalhandoAgora ? "status-ok" : "status-muted"}`}>
@@ -202,7 +202,7 @@ export default function DashboardBolsista() {
         <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
           <div className="metric-card">
             <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
-              Horas no mes
+              Horas no mês
             </p>
             <strong className="mt-3 block text-2xl text-slate-900">
               {formatarHorasMinutos(resumo.totalHoras)}
@@ -290,7 +290,7 @@ export default function DashboardBolsista() {
 
           <div className="panel">
             <h2 className="text-xl font-bold text-slate-900">
-              Registrar saida
+              Registrar saída
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               Use ao encerrar sua jornada.
@@ -313,10 +313,10 @@ export default function DashboardBolsista() {
         <section className="panel">
           <div className="mb-5">
             <h2 className="text-2xl font-bold text-slate-900">
-              Historico de ponto
+              Histórico de ponto
             </h2>
             <p className="text-sm text-slate-500">
-              Ultimos registros de entrada, saida e horas trabalhadas.
+              Ultimos registros de entrada, saída e horas trabalhadas.
             </p>
           </div>
 

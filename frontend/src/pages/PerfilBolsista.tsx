@@ -112,7 +112,7 @@ export default function PerfilBolsista() {
     e.preventDefault();
 
     if (novaSenha !== confirmacaoSenha) {
-      toast.error("A confirmacao nao confere com a nova senha");
+      toast.error("A confirmação não confere com a nova senha");
       return;
     }
 
@@ -156,7 +156,7 @@ export default function PerfilBolsista() {
               Perfil
             </p>
             <h1 className="page-title">
-              Dados da conta
+              Dados da Conta
             </h1>
             <p className="page-subtitle">
               Mantenha seus dados de acesso atualizados.
@@ -201,10 +201,10 @@ export default function PerfilBolsista() {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <section className="panel">
             <h2 className="text-2xl font-bold text-slate-900">
-              Informacoes pessoais
+              Informações pessoais
             </h2>
             <p className="mb-6 mt-1 text-sm text-slate-500">
-              Estes dados aparecem na identificacao do usuario.
+              Estes dados aparecem na identificação do usuario.
             </p>
 
             <form onSubmit={salvarPerfil}>
@@ -241,7 +241,7 @@ export default function PerfilBolsista() {
 
           <section className="panel">
             <h2 className="text-2xl font-bold text-slate-900">
-              Seguranca
+              Segurança
             </h2>
             <p className="mb-6 mt-1 text-sm text-slate-500">
               Atualize sua senha periodicamente.
@@ -249,7 +249,7 @@ export default function PerfilBolsista() {
 
             <form onSubmit={alterarSenha}>
               <label className="field-label">
-                Senha atual
+                Senha Atual
               </label>
               <input
                 type="password"
@@ -260,7 +260,7 @@ export default function PerfilBolsista() {
               />
 
               <label className="field-label">
-                Nova senha
+                Nova Senha
               </label>
               <input
                 type="password"
@@ -297,16 +297,16 @@ export default function PerfilBolsista() {
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">
-                  Dados academicos
+                  Dados Acadêmicos
                 </h2>
                 <p className="text-sm text-slate-500">
-                  Informacoes usadas nos relatorios individuais de ponto.
+                  Informações usadas nos relatórios individuais de ponto.
                 </p>
               </div>
 
               <span className="status-pill status-muted">
                 <GoCheckCircle aria-hidden="true" />
-                Definido no cadastro
+                Definido no Cadastro
               </span>
             </div>
 
@@ -325,7 +325,7 @@ export default function PerfilBolsista() {
 
               <div>
                 <label className="field-label">
-                  Unidade/Orgao
+                  Unidade/Orgão
                 </label>
                 <input
                   disabled
@@ -337,7 +337,7 @@ export default function PerfilBolsista() {
 
               <div>
                 <label className="field-label">
-                  Carga horaria semanal
+                  Carga horária semanal
                 </label>
                 <input
                   disabled

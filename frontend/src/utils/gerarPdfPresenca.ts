@@ -80,7 +80,7 @@ function desenharPagina(
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(15);
   pdf.text(
-    "Relatorio Individual de Ponto",
+    "Relatório Individual de Ponto",
     105,
     24,
     { align: "center" }
@@ -89,7 +89,7 @@ function desenharPagina(
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(9);
   pdf.text(
-    `Mes/Ano: ${mes.toString().padStart(2, "0")}/${ano}`,
+    `Mês/Ano: ${mes.toString().padStart(2, "0")}/${ano}`,
     196,
     34,
     { align: "right" }
@@ -112,9 +112,9 @@ function desenharBlocoDados(
   const linhas = [
     ["Nome", bolsista.nome],
     ["Curso", bolsista.curso || "-"],
-    ["Carga horaria semanal", bolsista.cargaSemanal],
-    ["Unidade/Orgao", bolsista.unidade || "-"],
-    ["Data de geracao", dataGeracao]
+    ["Carga Horária Semanal", bolsista.cargaSemanal],
+    ["Unidade/Orgão", bolsista.unidade || "-"],
+    ["Data de Geração", dataGeracao]
   ];
 
   linhas.forEach(([label, valor], index) => {
@@ -135,8 +135,8 @@ function desenharTabelaRegistros(
   const colunas = [
     { titulo: "Data", x: 18, largura: 38 },
     { titulo: "Entrada", x: 60, largura: 32 },
-    { titulo: "Saida", x: 96, largura: 32 },
-    { titulo: "Carga horaria", x: 132, largura: 44 }
+    { titulo: "Saída", x: 96, largura: 32 },
+    { titulo: "Carga Horária", x: 132, largura: 44 }
   ];
 
   pdf.setFillColor(234, 239, 246);
@@ -208,7 +208,7 @@ function desenharRodapeAssinaturas(
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(10);
   pdf.text(
-    `Carga horaria total: ${totalHoras}`,
+    `Carga Horária Total: ${totalHoras}`,
     14,
     246
   );
@@ -220,7 +220,7 @@ function desenharRodapeAssinaturas(
   pdf.line(18, 276, 86, 276);
   pdf.line(124, 276, 192, 276);
   pdf.text(
-    "Assinatura do Estagiario",
+    "Assinatura do Estagiário",
     29,
     282
   );

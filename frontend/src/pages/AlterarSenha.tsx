@@ -27,7 +27,7 @@ export default function AlterarSenha() {
     }
 
     if (novaSenha !== confirmacao) {
-      toast.error("A confirmacao nao confere com a nova senha");
+      toast.error("A confirmação nao confere com a nova senha");
       return;
     }
 
@@ -69,7 +69,7 @@ export default function AlterarSenha() {
         <div className="page-heading">
           <div>
             <p className="page-kicker">
-              Seguranca
+              Segurança
             </p>
             <h1 className="page-title">
               Alterar senha
@@ -85,7 +85,7 @@ export default function AlterarSenha() {
           className="panel w-full max-w-xl"
         >
           <label className="field-label">
-            Senha atual
+            Senha Atual
           </label>
           <input
             type="password"
@@ -96,7 +96,7 @@ export default function AlterarSenha() {
           />
 
           <label className="field-label">
-            Nova senha
+            Nova Senha
           </label>
           <input
             type="password"
@@ -107,7 +107,7 @@ export default function AlterarSenha() {
           />
 
           <p className="mb-4 text-sm text-slate-500">
-            Minimo de 8 caracteres, 1 numero e 1 caractere especial.
+            Mínimo de 8 caracteres, 1 numero e 1 caractere especial.
           </p>
 
           <label className="field-label">

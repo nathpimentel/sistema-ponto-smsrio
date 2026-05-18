@@ -58,13 +58,13 @@ export default function Login() {
       <section className="auth-visual">
         <div className="auth-copy">
           <p className="page-kicker text-white/80">
-            Secretaria Municipal de Saude
+            Secretaria Municipal de Saúde do Rio de Janeiro
           </p>
           <h1>
             Controle de ponto simples, claro e seguro.
           </h1>
           <p>
-            Acompanhe jornadas, relatorios e aprovacoes em uma experiencia
+            Acompanhe jornadas, relatórios e aprovações em uma experiência
             organizada para supervisores e bolsistas.
           </p>
         </div>
@@ -123,7 +123,7 @@ export default function Login() {
           </button>
 
           <div className="mt-6 flex flex-col gap-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-            <span>Nao possui conta?</span>
+            <span>Não possui conta?</span>
             <Link
               to="/register"
               className="inline-flex items-center gap-2 font-bold text-teal-700 hover:text-teal-900"

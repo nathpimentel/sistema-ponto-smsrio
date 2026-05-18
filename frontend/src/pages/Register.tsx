@@ -47,12 +47,12 @@ export default function Register() {
         )
       )
     ) {
-      toast.error("Preencha todos os campos obrigatorios");
+      toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 
     if (!senhaAtendeRequisitos(senha)) {
-      toast.error("A senha nao atende os requisitos minimos");
+      toast.error("A senha não atende os requisitos mínimos");
       return;
     }
 
@@ -71,7 +71,7 @@ export default function Register() {
           : null
       });
 
-      toast.success("Cadastro enviado para aprovacao");
+      toast.success("Cadastro enviado para aprovação");
       navigate("/");
     } catch {
       toast.error("Erro ao registrar");
@@ -91,8 +91,8 @@ export default function Register() {
             Seu acesso com os dados certos desde o inicio.
           </h1>
           <p>
-            Curso, carga semanal e unidade informados aqui serao usados nos
-            relatorios individuais de ponto.
+            Curso, carga semanal e unidade informados aqui serão usados nos
+            relatórios individuais de ponto.
           </p>
         </div>
       </section>
@@ -115,12 +115,12 @@ export default function Register() {
                 className="secondary-button min-h-0 whitespace-nowrap px-3 py-2 text-sm"
               >
                 <GoArrowLeft aria-hidden="true" />
-                Voltar ao login
+                Voltar ao Login
               </Link>
             </div>
 
             <p className="page-kicker">
-              Novo cadastro
+              Novo Cadastro
             </p>
             <h2 className="page-title text-3xl">
               Registrar-se
@@ -130,7 +130,7 @@ export default function Register() {
           <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="field-label">
-                Nome completo
+                Nome Completo
               </label>
               <input
                 type="text"
@@ -196,7 +196,7 @@ export default function Register() {
                   </p>
                   <div className="mt-2 grid gap-1 text-xs text-slate-500">
                     <span>{senha.length >= 8 ? "OK" : "--"} Minimo de 8 caracteres</span>
-                    <span>{/\d/.test(senha) ? "OK" : "--"} Pelo menos 1 numero</span>
+                    <span>{/\d/.test(senha) ? "OK" : "--"} Pelo menos 1 número</span>
                     <span>
                       {/[!@#$%^&*(),.?":{}|<>]/.test(senha) ? "OK" : "--"} Pelo menos 1 caractere especial
                     </span>

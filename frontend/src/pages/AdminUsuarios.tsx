@@ -73,39 +73,39 @@ export default function AdminUsuarios() {
       const response = await api.get("/supervisor/usuarios");
       setUsuarios(response.data);
     } catch {
-      toast.error("Erro ao carregar usuarios");
+      toast.error("Erro ao carregar usuários");
     }
   }
 
   async function aprovarUsuario(id: number) {
     try {
       await api.put(`/supervisor/aprovar/${id}`, {});
-      toast.success("Usuario aprovado");
+      toast.success("Usuário Aprovado");
       carregarUsuarios();
     } catch {
-      toast.error("Erro ao aprovar usuario");
+      toast.error("Erro ao aprovar usuário");
     }
   }
 
   async function desativarUsuario(id: number) {
     try {
       await api.put(`/supervisor/desativar/${id}`, {});
-      toast.success("Usuario desativado");
+      toast.success("Usuário Desativado");
       carregarUsuarios();
     } catch {
-      toast.error("Erro ao desativar usuario");
+      toast.error("Erro ao desativar usuário");
     }
   }
 
   async function excluirUsuario(id: number) {
     try {
       await api.delete(`/supervisor/excluir/${id}`);
-      toast.success("Usuario excluido");
+      toast.success("Usuário Excluído");
       setModalExcluir(false);
       setUsuarioSelecionado(null);
       carregarUsuarios();
     } catch {
-      toast.error("Erro ao excluir usuario");
+      toast.error("Erro ao excluir usuário");
     }
   }
 
@@ -121,10 +121,10 @@ export default function AdminUsuarios() {
         <div className="page-heading">
           <div>
             <p className="page-kicker">
-              Gestao de acesso
+              Gestão de acesso
             </p>
             <h1 className="page-title">
-              Usuarios
+              Usuários
             </h1>
             <p className="page-subtitle">
               Aprove cadastros, acompanhe perfis e mantenha a base organizada.
@@ -136,7 +136,7 @@ export default function AdminUsuarios() {
             className="secondary-button"
           >
             <GoSync aria-hidden="true" />
-            Atualizar lista
+            Atualizar Lista
           </button>
         </div>
 
@@ -147,7 +147,7 @@ export default function AdminUsuarios() {
             </span>
             <div>
               <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
-                Total de usuarios
+                Total de Usuários
               </p>
               <strong className="mt-2 block text-4xl text-slate-900">
                 {usuarios.length}
@@ -208,14 +208,14 @@ export default function AdminUsuarios() {
               className="text-teal-700"
             />
             <h2 className="text-xl font-bold text-slate-900">
-              Filtros administrativos
+              Filtros Administrativos
             </h2>
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_0.75fr_0.75fr]">
             <div>
               <label className="field-label">
-                Buscar usuario
+                Buscar Usuário
               </label>
               <div className="relative">
                 <GoSearch
@@ -268,10 +268,10 @@ export default function AdminUsuarios() {
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-2xl font-bold text-slate-900">
-                Lista de usuarios
+                Lista de Usuários
               </h2>
               <p className="text-sm text-slate-500">
-                {usuariosFiltrados.length} usuario(s) exibidos com os filtros atuais.
+                {usuariosFiltrados.length} usuário(s) exibidos com os filtros atuais.
               </p>
             </div>
 
@@ -285,19 +285,19 @@ export default function AdminUsuarios() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Usuario</th>
+                  <th>Usuário</th>
                   <th>Perfil</th>
                   <th>Unidade</th>
-                  <th>Dados academicos</th>
+                  <th>Dados Acadêmicos</th>
                   <th>Status</th>
-                  <th>Acoes</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {usuariosFiltrados.length === 0 ? (
                   <tr>
                     <td colSpan={6}>
-                      Nenhum usuario encontrado.
+                      Nenhum usuário encontrado.
                     </td>
                   </tr>
                 ) : (
@@ -332,16 +332,16 @@ export default function AdminUsuarios() {
                       <td>
                         {usuario.tipoUsuario === "Bolsista" ? (
                           <div className="text-sm text-slate-600">
-                            <p>{usuario.cursoFaculdade || "Curso nao informado"}</p>
+                            <p>{usuario.cursoFaculdade || "Curso não informado"}</p>
                             <p className="font-bold text-slate-700">
                               {usuario.cargaHorariaSemanal
                                 ? `${usuario.cargaHorariaSemanal}h semanais`
-                                : "Carga nao informada"}
+                                : "Carga não informada"}
                             </p>
                           </div>
                         ) : (
                           <span className="text-sm text-slate-500">
-                            Acesso administrativo
+                            Acesso Administrativo
                           </span>
                         )}
                       </td>
@@ -402,11 +402,11 @@ export default function AdminUsuarios() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4">
           <div className="panel w-full max-w-md">
             <h2 className="text-2xl font-bold text-slate-900">
-              Confirmar exclusao
+              Confirmar exclusão
             </h2>
 
             <p className="mt-3 text-slate-600">
-              Deseja excluir permanentemente o usuario {usuarioSelecionado.nome}?
+              Deseja excluir permanentemente o usuário {usuarioSelecionado.nome}?
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
