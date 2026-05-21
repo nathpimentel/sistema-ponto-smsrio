@@ -2,7 +2,7 @@ import axios from "axios";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import {
-  GoPersonAdd,
+  GoKey,
   GoSignIn
 } from "react-icons/go";
 import {
@@ -114,14 +114,13 @@ export default function Login() {
                 {carregando ? "Entrando..." : "Entrar"}
               </button>
 
-              <div className="mt-6 flex items-center justify-between text-sm text-slate-500">
-                <span>Não possui conta?</span>
+              <div className="mt-6 flex items-center justify-center text-sm">
                 <Link
-                  to="/register"
+                  to="/primeiro-acesso"
                   className="inline-flex items-center gap-2 font-bold text-teal-700 hover:text-teal-900"
                 >
-                  <GoPersonAdd aria-hidden="true" />
-                  Criar cadastro
+                  <GoKey aria-hidden="true" />
+                  Primeiro acesso?
                 </Link>
               </div>
             </form>

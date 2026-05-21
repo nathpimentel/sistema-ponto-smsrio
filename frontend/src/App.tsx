@@ -6,14 +6,14 @@ from "./pages/AlterarSenha";
 
 import { Toaster } from "react-hot-toast";
 
-import Register from "./pages/Register";
-
 import DashboardBolsista
 from "./pages/DashboardBolsista";
 import PerfilBolsista
 from "./pages/PerfilBolsista";
+import PrimeiroAcesso from "./pages/PrimeiroAcesso";
 import Registros from "./pages/Registros";
 import {
+  Navigate,
   Routes,
   Route
 } from "react-router-dom";
@@ -45,7 +45,12 @@ export default function App() {
 
 <Route
   path="/register"
-  element={<Register />}
+  element={<Navigate to="/" replace />}
+/>
+
+<Route
+  path="/primeiro-acesso"
+  element={<PrimeiroAcesso />}
 />
 
       <Route
