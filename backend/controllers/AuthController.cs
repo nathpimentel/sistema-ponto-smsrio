@@ -45,9 +45,14 @@ public class AuthController : ControllerBase
 private static bool SenhaValida(string senha)
 {
     return senha.Length >= 8 &&
+        senha.Any(char.IsLower) &&
+        senha.Any(char.IsUpper) &&
         senha.Any(char.IsDigit) &&
         senha.Any(c => !char.IsLetterOrDigit(c));
 }
+
+private const string MensagemSenhaInvalida =
+    "A senha deve ter no minimo 8 caracteres, uma letra minuscula, uma letra maiuscula, um numero e um caractere especial";
 
 private static string GerarTokenPrimeiroAcesso()
 {
@@ -185,9 +190,7 @@ public IActionResult Register(RegisterDto dto)
 
         if (!SenhaValida(novaSenha))
         {
-            return BadRequest(
-                "A senha deve ter no minimo 8 caracteres, 1 numero e 1 caractere especial"
-            );
+            return BadRequest(MensagemSenhaInvalida);
         }
 
         var tokenHash = GerarHashToken(token);
@@ -431,9 +434,7 @@ public IActionResult Register(RegisterDto dto)
 
         if (!SenhaValida(dto.NovaSenha))
         {
-            return BadRequest(
-                "A nova senha deve ter no mínimo 8 caracteres, 1 número e 1 caractere especial"
-            );
+            return BadRequest(MensagemSenhaInvalida);
         }
 
         user.SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.NovaSenha);
