@@ -3,6 +3,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import {
   GoArrowLeft,
+  GoCopy,
   GoKey,
   GoPerson,
   GoPersonAdd
@@ -17,9 +18,7 @@ export default function Register() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [tipoUsuario, setTipoUsuario] = useState("Bolsista");
-  const [unidade, setUnidade] = useState("");
-  const [cursoFaculdade, setCursoFaculdade] = useState("");
-  const [cargaHorariaSemanal, setCargaHorariaSemanal] = useState("");
+  const [cargaHorariaSemanal, setCargaHorariaSemanal] = useState("20");
   const [salvando, setSalvando] = useState(false);
   const [convite, setConvite] = useState<{
     primeiroAcessoToken: string;
@@ -27,13 +26,22 @@ export default function Register() {
     expiraEm: string;
   } | null>(null);
 
+  async function copiarTexto(texto: string, mensagem: string) {
+    try {
+      await navigator.clipboard.writeText(texto);
+      toast.success(mensagem);
+    } catch {
+      toast.error("Nao foi possivel copiar");
+    }
+  }
+
   async function registrar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     if (
       !nome ||
       !email ||
-      (tipoUsuario === "Bolsista" && (!unidade || !cursoFaculdade || !cargaHorariaSemanal))
+      (tipoUsuario === "Bolsista" && !cargaHorariaSemanal)
     ) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
@@ -46,8 +54,6 @@ export default function Register() {
         nome,
         email,
         tipoUsuario,
-        unidade,
-        cursoFaculdade,
         cargaHorariaSemanal: cargaHorariaSemanal ? Number(cargaHorariaSemanal) : null
       });
 
@@ -160,45 +166,27 @@ export default function Register() {
 
               {tipoUsuario === "Bolsista" && (
                 <section className="mt-4 border-t border-slate-200 pt-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
-                      <label className="field-label">Curso</label>
-                      <input
-                        type="text"
-                        placeholder="Ex: Enfermagem"
-                        className="field"
-                        value={cursoFaculdade}
-                        onChange={(e) => setCursoFaculdade(e.target.value)}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="field-label">Carga semanal (h)</label>
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="Ex: 30"
-                        className="field"
-                        value={cargaHorariaSemanal}
-                        onChange={(e) => setCargaHorariaSemanal(e.target.value)}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="field-label">Unidade/Órgão</label>
-                      <select
-                        className="field"
-                        value={unidade}
-                        onChange={(e) => setUnidade(e.target.value)}
+                  <label className="field-label">Carga semanal (h)</label>
+                  <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-100 p-1">
+                    {["20", "30"].map((carga) => (
+                      <button
+                        key={carga}
+                        type="button"
+                        onClick={() => setCargaHorariaSemanal(carga)}
+                        className={`inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-bold transition ${
+                          cargaHorariaSemanal === carga
+                            ? "bg-white text-teal-800 shadow"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
                       >
-                        <option value="">Selecione</option>
-                        <option value="SMS-RIO">SMS-RIO</option>
-                        <option value="RH">RH</option>
-                        <option value="TI">TI</option>
-                        <option value="Administrativo">Administrativo</option>
-                      </select>
-                    </div>
+                        {carga}h
+                      </button>
+                    ))}
                   </div>
+                  <input
+                    type="hidden"
+                    value={cargaHorariaSemanal}
+                  />
                 </section>
               )}
 
@@ -209,16 +197,26 @@ export default function Register() {
             </form>
 
             {convite && (
-              <section className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+              <section className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
                 <div className="mb-3 flex items-center gap-2 font-bold text-emerald-900">
                   <GoKey aria-hidden="true" />
                   Link de primeiro acesso
                 </div>
-                <p className="break-all text-sm text-emerald-950">
-                  {`${window.location.origin}${convite.primeiroAcessoUrl}`}
-                </p>
-                <p className="mt-3 break-all text-xs text-emerald-800">
-                  Token: {convite.primeiroAcessoToken}
+                <button
+                  type="button"
+                  onClick={() =>
+                    copiarTexto(
+                      `${window.location.origin}${convite.primeiroAcessoUrl}`,
+                      "Link copiado"
+                    )
+                  }
+                  className="quiet-button min-h-0 px-3 py-2 text-sm"
+                >
+                  <GoCopy aria-hidden="true" />
+                  Copiar link de primeiro acesso
+                </button>
+                <p className="mt-3 text-xs leading-relaxed text-emerald-800">
+                  O link de primeiro acesso tem validade de 60 minutos.
                 </p>
               </section>
             )}

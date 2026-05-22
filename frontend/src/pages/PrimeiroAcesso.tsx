@@ -5,7 +5,8 @@ import {
   GoArrowLeft,
   GoEye,
   GoEyeClosed,
-  GoKey
+  GoKey,
+  GoXCircle
 } from "react-icons/go";
 import {
   Link,
@@ -29,6 +30,11 @@ export default function PrimeiroAcesso() {
   const [salvando, setSalvando] = useState(false);
 
   const forcaSenha = verificarForcaSenha(novaSenha);
+  const requisitosSenha = obterRequisitosSenha(novaSenha);
+  const senhaCumpreRequisitos = requisitosSenha.every((requisito) => requisito.ok);
+  const tokenVeioDoLink = Boolean(tokenRecebido);
+  const senhasNaoCoincidem =
+    confirmarSenha.length > 0 && novaSenha !== confirmarSenha;
 
   async function definirSenha(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -59,6 +65,11 @@ export default function PrimeiroAcesso() {
       toast.success("Senha definida com sucesso");
       navigate("/");
     } catch (error) {
+      if (axios.isAxiosError(error) && error.request && !error.response) {
+        toast.error("Nao foi possivel conectar ao servidor. Verifique se o backend esta rodando.");
+        return;
+      }
+
       const mensagem =
         axios.isAxiosError(error) && typeof error.response?.data === "string"
           ? error.response.data
@@ -114,22 +125,28 @@ export default function PrimeiroAcesso() {
             </div>
 
             <p className="auth-panel-subtitle">
-              Use o token recebido por email para criar sua senha definitiva.
+              Crie sua senha definitiva para acessar o sistema.
             </p>
 
             <form onSubmit={definirSenha}>
               <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label className="field-label">Token de acesso</label>
-                  <input
-                    type="text"
-                    autoComplete="one-time-code"
-                    placeholder="Cole o token recebido"
-                    className="field"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                  />
-                </div>
+                {tokenVeioDoLink ? (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-900">
+                    Convite recebido pelo link de primeiro acesso.
+                  </div>
+                ) : (
+                  <div>
+                    <label className="field-label">Token de acesso</label>
+                    <input
+                      type="password"
+                      autoComplete="one-time-code"
+                      placeholder="Cole o token recebido"
+                      className="field"
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="field-label">Nova senha</label>
@@ -156,14 +173,33 @@ export default function PrimeiroAcesso() {
                     <div className="mt-2 flex items-center gap-3">
                       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
                         <div
-                          className={`h-full transition-all duration-500 ${forcaSenha.cor}`}
+                          className={`h-full transition-all duration-500 ${senhaCumpreRequisitos ? forcaSenha.cor : "bg-red-500"}`}
                           style={{ width: forcaSenha.largura }}
                         />
                       </div>
                       <span className="text-xs font-bold text-slate-600 whitespace-nowrap">
-                        {forcaSenha.texto}
+                        {senhaCumpreRequisitos ? forcaSenha.texto : "Requisitos pendentes"}
                       </span>
                     </div>
+                  )}
+
+                  {novaSenha.length > 0 && !senhaCumpreRequisitos && (
+                    <ul className="mt-3 grid grid-cols-1 gap-1 text-xs text-slate-600">
+                      {requisitosSenha
+                        .filter((requisito) => !requisito.ok)
+                        .map((requisito) => (
+                          <li
+                            key={requisito.texto}
+                            className="flex items-center gap-2"
+                          >
+                            <GoXCircle
+                              aria-hidden="true"
+                              className="shrink-0 text-red-600"
+                            />
+                            {requisito.texto}
+                          </li>
+                        ))}
+                    </ul>
                   )}
                 </div>
 
@@ -173,14 +209,23 @@ export default function PrimeiroAcesso() {
                     type={mostrarSenha ? "text" : "password"}
                     autoComplete="new-password"
                     placeholder="Repita a nova senha"
-                    className="field"
+                    className={`field ${senhasNaoCoincidem ? "border-red-400 focus:border-red-500 focus:ring-red-200" : ""}`}
                     value={confirmarSenha}
                     onChange={(e) => setConfirmarSenha(e.target.value)}
                   />
+                  {senhasNaoCoincidem && (
+                    <p className="mt-2 flex items-center gap-2 text-xs font-bold text-red-600">
+                      <GoXCircle aria-hidden="true" />
+                      As senhas nao coincidem
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <button disabled={salvando} className="primary-button mt-6 w-full">
+              <button
+                disabled={salvando || senhasNaoCoincidem}
+                className="primary-button mt-6 w-full"
+              >
                 <GoKey aria-hidden="true" />
                 {salvando ? "Salvando..." : "Salvar senha"}
               </button>
@@ -195,13 +240,17 @@ export default function PrimeiroAcesso() {
 }
 
 function senhaAtendeRequisitos(senha: string) {
-  return (
-    senha.length >= 8 &&
-    /[a-z]/.test(senha) &&
-    /[A-Z]/.test(senha) &&
-    /\d/.test(senha) &&
-    /[!@#$%^&*(),.?":{}|<>]/.test(senha)
-  );
+  return obterRequisitosSenha(senha).every((requisito) => requisito.ok);
+}
+
+function obterRequisitosSenha(senha: string) {
+  return [
+    { texto: "Minimo 8 caracteres", ok: senha.length >= 8 },
+    { texto: "Uma letra minuscula", ok: /[a-z]/.test(senha) },
+    { texto: "Uma letra maiuscula", ok: /[A-Z]/.test(senha) },
+    { texto: "Um numero", ok: /\d/.test(senha) },
+    { texto: "Um caractere especial", ok: /[!@#$%^&*(),.?":{}|<>]/.test(senha) }
+  ];
 }
 
 function verificarForcaSenha(senha: string) {

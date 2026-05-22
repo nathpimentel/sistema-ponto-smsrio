@@ -168,7 +168,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  overflow-y: hidden;
+  overflow-y: auto;
   position: relative;
 }
 

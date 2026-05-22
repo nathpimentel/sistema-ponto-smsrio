@@ -122,15 +122,13 @@ public IActionResult Register(RegisterDto dto)
     if (
         tipoUsuario == "Bolsista" &&
         (
-            string.IsNullOrWhiteSpace(unidade) ||
-            string.IsNullOrWhiteSpace(cursoFaculdade) ||
             !cargaHorariaSemanal.HasValue ||
             cargaHorariaSemanal.Value <= 0
         )
     )
     {
         return BadRequest(
-            "Curso, carga horária semanal e unidade são obrigatórios para bolsistas"
+            "Carga horaria semanal e obrigatoria para bolsistas"
         );
     }
 
@@ -153,7 +151,7 @@ public IActionResult Register(RegisterDto dto)
         SenhaHash = BCrypt.Net.BCrypt.HashPassword(GerarTokenPrimeiroAcesso()),
         SenhaDefinida = false,
         PrimeiroAcessoTokenHash = GerarHashToken(tokenPrimeiroAcesso),
-        PrimeiroAcessoTokenExpiraEm = DateTime.UtcNow.AddDays(7),
+        PrimeiroAcessoTokenExpiraEm = DateTime.UtcNow.AddMinutes(60),
         TipoUsuario = tipoUsuario,
         Unidade = tipoUsuario == "Bolsista" ? unidade : "",
         CursoFaculdade = tipoUsuario == "Bolsista" ? cursoFaculdade : "",
