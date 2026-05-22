@@ -11,12 +11,14 @@ import {
   GoFilter,
   GoPeople,
   GoPerson,
+  GoPersonAdd,
   GoSearch,
   GoShieldCheck,
   GoSync,
   GoTrash,
   GoXCircle
 } from "react-icons/go";
+import { Link } from "react-router-dom";
 
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
@@ -134,13 +136,23 @@ export default function AdminUsuarios() {
             </p>
           </div>
 
-          <button
-            onClick={carregarUsuarios}
-            className="secondary-button"
-          >
-            <GoSync aria-hidden="true" />
-            Atualizar Lista
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/register"
+              className="primary-button"
+            >
+              <GoPersonAdd aria-hidden="true" />
+              Novo usuario
+            </Link>
+
+            <button
+              onClick={carregarUsuarios}
+              className="secondary-button"
+            >
+              <GoSync aria-hidden="true" />
+              Atualizar Lista
+            </button>
+          </div>
         </div>
 
         <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">

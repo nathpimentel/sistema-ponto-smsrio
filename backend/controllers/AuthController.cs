@@ -17,6 +17,7 @@ using backend.dtos;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 using Microsoft.AspNetCore.Authorization;
@@ -48,6 +49,18 @@ private static bool SenhaValida(string senha)
         senha.Any(c => !char.IsLetterOrDigit(c));
 }
 
+private static string GerarTokenPrimeiroAcesso()
+{
+    return Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+}
+
+private static string GerarHashToken(string token)
+{
+    return Convert.ToHexString(
+        SHA256.HashData(Encoding.UTF8.GetBytes(token.Trim()))
+    );
+}
+
 private User? ObterUsuarioLogado()
 {
     var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -70,6 +83,7 @@ private User? ObterUsuarioLogado()
         .FirstOrDefault(u => u.Email.ToLower() == emailNormalizado);
 }
 
+[Authorize(Roles = "Supervisor")]
 [HttpPost("register")]
 public IActionResult Register(RegisterDto dto)
 {
@@ -82,19 +96,11 @@ public IActionResult Register(RegisterDto dto)
 
     if (
         string.IsNullOrWhiteSpace(nome) ||
-        string.IsNullOrWhiteSpace(email) ||
-        string.IsNullOrWhiteSpace(dto.Senha)
+        string.IsNullOrWhiteSpace(email)
     )
     {
         return BadRequest(
-            "Nome, email e senha são obrigatórios"
-        );
-    }
-
-    if (!SenhaValida(dto.Senha))
-    {
-        return BadRequest(
-            "A senha deve ter no mínimo 8 caracteres, 1 número e 1 caractere especial"
+            "Nome e email sao obrigatorios"
         );
     }
 
@@ -133,23 +139,23 @@ public IActionResult Register(RegisterDto dto)
         );
     }
 
-    var senhaHash =
-        BCrypt.Net.BCrypt.HashPassword(
-            dto.Senha
-        );
+    var tokenPrimeiroAcesso = GerarTokenPrimeiroAcesso();
 
     var user = new User
     {
         Nome = nome,
         Email = email,
-        SenhaHash = senhaHash,
+        SenhaHash = BCrypt.Net.BCrypt.HashPassword(GerarTokenPrimeiroAcesso()),
+        SenhaDefinida = false,
+        PrimeiroAcessoTokenHash = GerarHashToken(tokenPrimeiroAcesso),
+        PrimeiroAcessoTokenExpiraEm = DateTime.UtcNow.AddDays(7),
         TipoUsuario = tipoUsuario,
         Unidade = tipoUsuario == "Bolsista" ? unidade : "",
         CursoFaculdade = tipoUsuario == "Bolsista" ? cursoFaculdade : "",
         CargaHorariaSemanal = tipoUsuario == "Bolsista"
             ? cargaHorariaSemanal
             : null,
-        Aprovado = tipoUsuario == "Supervisor"
+        Aprovado = true
     };
 
     _context.Users.Add(user);
@@ -159,9 +165,63 @@ public IActionResult Register(RegisterDto dto)
     return Ok(new
     {
         mensagem =
-            "Usuário cadastrado com sucesso"
+            "Usuário cadastrado com sucesso",
+        primeiroAcessoToken = tokenPrimeiroAcesso,
+        primeiroAcessoUrl = $"/primeiro-acesso?token={tokenPrimeiroAcesso}",
+        expiraEm = user.PrimeiroAcessoTokenExpiraEm
     });
 }
+
+    [HttpPost("primeiro-acesso/definir-senha")]
+    public IActionResult DefinirSenhaPrimeiroAcesso(PrimeiroAcessoDefinirSenhaDto dto)
+    {
+        var token = (dto.Token ?? "").Trim();
+        var novaSenha = dto.NovaSenha ?? "";
+
+        if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(novaSenha))
+        {
+            return BadRequest("Token e nova senha sao obrigatorios");
+        }
+
+        if (!SenhaValida(novaSenha))
+        {
+            return BadRequest(
+                "A senha deve ter no minimo 8 caracteres, 1 numero e 1 caractere especial"
+            );
+        }
+
+        var tokenHash = GerarHashToken(token);
+
+        var user = _context.Users.FirstOrDefault(u =>
+            u.PrimeiroAcessoTokenHash == tokenHash &&
+            !u.SenhaDefinida
+        );
+
+        if (user == null)
+        {
+            return BadRequest("Token invalido ou ja utilizado");
+        }
+
+        if (
+            !user.PrimeiroAcessoTokenExpiraEm.HasValue ||
+            user.PrimeiroAcessoTokenExpiraEm.Value < DateTime.UtcNow
+        )
+        {
+            return BadRequest("Token expirado. Solicite um novo convite ao supervisor");
+        }
+
+        user.SenhaHash = BCrypt.Net.BCrypt.HashPassword(novaSenha);
+        user.SenhaDefinida = true;
+        user.PrimeiroAcessoTokenHash = null;
+        user.PrimeiroAcessoTokenExpiraEm = null;
+
+        _context.SaveChanges();
+
+        return Ok(new
+        {
+            mensagem = "Senha definida com sucesso"
+        });
+    }
 
     [HttpPost("login")]
     public IActionResult Login(LoginDto dto)
@@ -175,6 +235,11 @@ public IActionResult Register(RegisterDto dto)
             return Unauthorized("Usuário inválido");
         }
 
+        if (!user.SenhaDefinida)
+        {
+            return Unauthorized("Primeiro acesso pendente");
+        }
+
         var senhaCorreta = BCrypt.Net.BCrypt.Verify(dto.Senha, user.SenhaHash);
 
         if (!senhaCorreta)
@@ -182,10 +247,10 @@ public IActionResult Register(RegisterDto dto)
             return Unauthorized("Senha inválida");
         }
 
-        if (user.TipoUsuario == "Bolsista" && !user.Aprovado)
+        if (!user.Aprovado)
         {
             return Unauthorized(
-                "Aguardando aprovação do supervisor"
+                "Usuario inativo ou aguardando aprovacao"
             );
         }
 

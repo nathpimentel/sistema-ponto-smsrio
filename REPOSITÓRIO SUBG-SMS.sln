@@ -4,7 +4,7 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sistema-ponto-estagiario", "sistema-ponto-estagiario", "{AFACF89B-E2C3-9415-BD3D-28A8F4A3AE5E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "backend", "sistema-ponto-estagiario\backend\backend.csproj", "{DA7EC87F-20FF-232A-D579-1992C3D062DB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "backend", "backend\backend.csproj", "{DA7EC87F-20FF-232A-D579-1992C3D062DB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

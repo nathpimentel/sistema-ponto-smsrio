@@ -13,6 +13,13 @@ public class User
     [JsonIgnore]
     public string SenhaHash { get; set; } = string.Empty;
 
+    [JsonIgnore]
+    public string? PrimeiroAcessoTokenHash { get; set; }
+
+    public DateTime? PrimeiroAcessoTokenExpiraEm { get; set; }
+
+    public bool SenhaDefinida { get; set; } = true;
+
     public string TipoUsuario { get; set; } = string.Empty;
 
     public string Unidade { get; set; } = "";

@@ -1,34 +1,31 @@
+import axios from "axios";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import {
   GoArrowLeft,
-  GoEye,
-  GoEyeClosed,
+  GoKey,
   GoPerson,
   GoPersonAdd
 } from "react-icons/go";
-import {
-  Link,
-  useNavigate
-} from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import edificio from "../assets/sms-edificio.jpg";
 import logo from "../assets/prefeitura-logo.png";
 import api from "../services/api";
 
 export default function Register() {
-  const navigate = useNavigate();
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
   const [tipoUsuario, setTipoUsuario] = useState("Bolsista");
-  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [unidade, setUnidade] = useState("");
   const [cursoFaculdade, setCursoFaculdade] = useState("");
   const [cargaHorariaSemanal, setCargaHorariaSemanal] = useState("");
   const [salvando, setSalvando] = useState(false);
-
-  const forcaSenha = verificarForcaSenha(senha);
+  const [convite, setConvite] = useState<{
+    primeiroAcessoToken: string;
+    primeiroAcessoUrl: string;
+    expiraEm: string;
+  } | null>(null);
 
   async function registrar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -36,35 +33,32 @@ export default function Register() {
     if (
       !nome ||
       !email ||
-      !senha ||
       (tipoUsuario === "Bolsista" && (!unidade || !cursoFaculdade || !cargaHorariaSemanal))
     ) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 
-    if (!senhaAtendeRequisitos(senha)) {
-      toast.error("A senha não atende os requisitos mínimos");
-      return;
-    }
-
     setSalvando(true);
 
     try {
-      await api.post("/auth/register", {
+      const response = await api.post("/auth/register", {
         nome,
         email,
-        senha,
         tipoUsuario,
         unidade,
         cursoFaculdade,
         cargaHorariaSemanal: cargaHorariaSemanal ? Number(cargaHorariaSemanal) : null
       });
 
-      toast.success("Cadastro enviado para aprovação");
-      navigate("/");
-    } catch {
-      toast.error("Erro ao registrar");
+      setConvite(response.data);
+      toast.success("Usuario criado. Envie o link de primeiro acesso");
+    } catch (error) {
+      const mensagem =
+        axios.isAxiosError(error) && typeof error.response?.data === "string"
+          ? error.response.data
+          : "Erro ao registrar";
+      toast.error(mensagem);
     } finally {
       setSalvando(false);
     }
@@ -105,10 +99,10 @@ export default function Register() {
                     Novo Cadastro
                   </span>
                 </div>
-                <h2 className="auth-panel-title">Registrar&#8209;se</h2>
+                <h2 className="auth-panel-title">Novo usuario</h2>
               </div>
               <Link
-                to="/"
+                to="/admin-usuarios"
                 className="secondary-button min-h-0 shrink-0 px-3 py-2 text-sm"
               >
                 <GoArrowLeft aria-hidden="true" />
@@ -141,41 +135,6 @@ export default function Register() {
                   />
                 </div>
 
-                <div>
-                  <label className="field-label">Senha</label>
-                  <div className="relative">
-                    <input
-                      type={mostrarSenha ? "text" : "password"}
-                      autoComplete="new-password"
-                      placeholder="Mínimo 8 caracteres"
-                      className="field pr-24"
-                      value={senha}
-                      onChange={(e) => setSenha(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setMostrarSenha(!mostrarSenha)}
-                      className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-bold text-slate-600 hover:bg-slate-100"
-                    >
-                      {mostrarSenha ? <GoEyeClosed aria-hidden="true" /> : <GoEye aria-hidden="true" />}
-                      {mostrarSenha ? "Ocultar" : "Mostrar"}
-                    </button>
-                  </div>
-
-                  {senha.length > 0 && (
-                    <div className="mt-2 flex items-center gap-3">
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
-                        <div
-                          className={`h-full transition-all duration-500 ${forcaSenha.cor}`}
-                          style={{ width: forcaSenha.largura }}
-                        />
-                      </div>
-                      <span className="text-xs font-bold text-slate-600 whitespace-nowrap">
-                        {forcaSenha.texto}
-                      </span>
-                    </div>
-                  )}
-                </div>
               </div>
 
               <div className="mt-4">
@@ -245,9 +204,24 @@ export default function Register() {
 
               <button disabled={salvando} className="primary-button mt-5 w-full">
                 <GoPersonAdd aria-hidden="true" />
-                {salvando ? "Enviando..." : "Enviar cadastro"}
+                {salvando ? "Criando..." : "Criar usuario"}
               </button>
             </form>
+
+            {convite && (
+              <section className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                <div className="mb-3 flex items-center gap-2 font-bold text-emerald-900">
+                  <GoKey aria-hidden="true" />
+                  Link de primeiro acesso
+                </div>
+                <p className="break-all text-sm text-emerald-950">
+                  {`${window.location.origin}${convite.primeiroAcessoUrl}`}
+                </p>
+                <p className="mt-3 break-all text-xs text-emerald-800">
+                  Token: {convite.primeiroAcessoToken}
+                </p>
+              </section>
+            )}
 
           </div>
         </section>
@@ -255,24 +229,4 @@ export default function Register() {
       </div>
     </div>
   );
-}
-
-function senhaAtendeRequisitos(senha: string) {
-  return (
-    senha.length >= 8 &&
-    /\d/.test(senha) &&
-    /[!@#$%^&*(),.?":{}|<>]/.test(senha)
-  );
-}
-
-function verificarForcaSenha(senha: string) {
-  let pontos = 0;
-  if (senha.length >= 8) pontos++;
-  if (/\d/.test(senha)) pontos++;
-  if (/[!@#$%^&*(),.?":{}|<>]/.test(senha)) pontos++;
-  if (senha.length >= 10) pontos++;
-
-  if (pontos <= 1) return { texto: "Senha fraca", cor: "bg-red-500", largura: "25%" };
-  if (pontos <= 3) return { texto: "Senha média", cor: "bg-amber-500", largura: "65%" };
-  return { texto: "Senha forte", cor: "bg-emerald-500", largura: "100%" };
 }
