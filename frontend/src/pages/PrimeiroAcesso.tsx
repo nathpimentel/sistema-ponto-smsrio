@@ -1,8 +1,12 @@
 import axios from "axios";
-import { useState } from "react";
+import {
+  useEffect,
+  useState
+} from "react";
 import toast from "react-hot-toast";
 import {
   GoArrowLeft,
+  GoCheckCircle,
   GoEye,
   GoEyeClosed,
   GoKey,
@@ -28,13 +32,23 @@ export default function PrimeiroAcesso() {
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [validandoToken, setValidandoToken] = useState(false);
+  const [tokenValidado, setTokenValidado] = useState(false);
+  const [erroToken, setErroToken] = useState("");
 
   const forcaSenha = verificarForcaSenha(novaSenha);
   const requisitosSenha = obterRequisitosSenha(novaSenha);
   const senhaCumpreRequisitos = requisitosSenha.every((requisito) => requisito.ok);
   const tokenVeioDoLink = Boolean(tokenRecebido);
+  const senhaBloqueada = !tokenValidado;
   const senhasNaoCoincidem =
     confirmarSenha.length > 0 && novaSenha !== confirmarSenha;
+
+  useEffect(() => {
+    if (tokenRecebido) {
+      validarToken(tokenRecebido, false);
+    }
+  }, [tokenRecebido]);
 
   async function definirSenha(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -77,6 +91,58 @@ export default function PrimeiroAcesso() {
       toast.error(mensagem);
     } finally {
       setSalvando(false);
+    }
+  }
+
+  function atualizarToken(valor: string) {
+    setToken(valor);
+    setTokenValidado(false);
+    setErroToken("");
+    setNovaSenha("");
+    setConfirmarSenha("");
+  }
+
+  async function validarToken(valor = token, mostrarSucesso = true) {
+    const tokenLimpo = valor.trim();
+
+    setTokenValidado(false);
+    setErroToken("");
+    setNovaSenha("");
+    setConfirmarSenha("");
+
+    if (!tokenLimpo) {
+      setErroToken("Informe o token de primeiro acesso");
+      return;
+    }
+
+    if (!/^[a-f0-9]{64}$/i.test(tokenLimpo)) {
+      setErroToken("Token incompleto ou em formato inválido");
+      return;
+    }
+
+    setValidandoToken(true);
+
+    try {
+      await api.get("/auth/primeiro-acesso/validar-token", {
+        params: { token: tokenLimpo }
+      });
+
+      setToken(tokenLimpo);
+      setTokenValidado(true);
+
+      if (mostrarSucesso) {
+        toast.success("Convite validado");
+      }
+    } catch (error) {
+      const mensagem =
+        axios.isAxiosError(error) && typeof error.response?.data === "string"
+          ? error.response.data
+          : "Não foi possível validar o convite";
+
+      setErroToken(mensagem);
+      toast.error(mensagem);
+    } finally {
+      setValidandoToken(false);
     }
   }
 
@@ -131,20 +197,52 @@ export default function PrimeiroAcesso() {
             <form onSubmit={definirSenha}>
               <div className="grid grid-cols-1 gap-4">
                 {tokenVeioDoLink ? (
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-900">
-                    Convite recebido pelo link de primeiro acesso.
+                  <div
+                    className={`rounded-lg border p-3 text-sm font-bold ${
+                      tokenValidado
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                        : erroToken
+                          ? "border-red-200 bg-red-50 text-red-700"
+                          : "border-slate-200 bg-slate-50 text-slate-600"
+                    }`}
+                  >
+                    {validandoToken && "Validando convite..."}
+                    {!validandoToken && tokenValidado && "Convite validado pelo link de primeiro acesso."}
+                    {!validandoToken && erroToken && erroToken}
                   </div>
                 ) : (
                   <div>
                     <label className="field-label">Token de acesso</label>
-                    <input
-                      type="password"
-                      autoComplete="one-time-code"
-                      placeholder="Cole o token recebido"
-                      className="field"
-                      value={token}
-                      onChange={(e) => setToken(e.target.value)}
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        autoComplete="one-time-code"
+                        placeholder="Cole o token recebido"
+                        className="field"
+                        value={token}
+                        onChange={(e) => atualizarToken(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        disabled={validandoToken || !token.trim()}
+                        onClick={() => validarToken()}
+                        className="secondary-button min-h-0 shrink-0 px-3 py-2 text-sm"
+                      >
+                        {validandoToken ? "Validando..." : "Validar"}
+                      </button>
+                    </div>
+                    {tokenValidado && (
+                      <p className="mt-2 flex items-center gap-2 text-xs font-bold text-emerald-700">
+                        <GoCheckCircle aria-hidden="true" />
+                        Convite validado. Crie sua senha.
+                      </p>
+                    )}
+                    {erroToken && (
+                      <p className="mt-2 flex items-center gap-2 text-xs font-bold text-red-600">
+                        <GoXCircle aria-hidden="true" />
+                        {erroToken}
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -156,18 +254,26 @@ export default function PrimeiroAcesso() {
                       autoComplete="new-password"
                       placeholder="Mínimo 8 caracteres"
                       className="field pr-24"
+                      disabled={senhaBloqueada}
                       value={novaSenha}
                       onChange={(e) => setNovaSenha(e.target.value)}
                     />
                     <button
                       type="button"
+                      disabled={senhaBloqueada}
                       onClick={() => setMostrarSenha(!mostrarSenha)}
-                      className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-bold text-slate-600 hover:bg-slate-100"
+                      className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-bold text-slate-600 hover:bg-slate-100 disabled:text-slate-400 disabled:hover:bg-transparent"
                     >
                       {mostrarSenha ? <GoEyeClosed aria-hidden="true" /> : <GoEye aria-hidden="true" />}
                       {mostrarSenha ? "Ocultar" : "Mostrar"}
                     </button>
                   </div>
+
+                  {senhaBloqueada && !tokenVeioDoLink && (
+                    <p className="mt-2 text-xs font-semibold text-slate-500">
+                      Informe o token de acesso para liberar a criação da senha.
+                    </p>
+                  )}
 
                   {novaSenha.length > 0 && (
                     <div className="mt-2 flex items-center gap-3">
@@ -183,22 +289,29 @@ export default function PrimeiroAcesso() {
                     </div>
                   )}
 
-                  {novaSenha.length > 0 && !senhaCumpreRequisitos && (
-                    <ul className="mt-3 grid grid-cols-1 gap-1 text-xs text-slate-600">
-                      {requisitosSenha
-                        .filter((requisito) => !requisito.ok)
-                        .map((requisito) => (
-                          <li
-                            key={requisito.texto}
-                            className="flex items-center gap-2"
-                          >
+                  {novaSenha.length > 0 && (
+                    <ul className="mt-3 grid grid-cols-1 gap-1.5 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs font-semibold">
+                      {requisitosSenha.map((requisito) => (
+                        <li
+                          key={requisito.texto}
+                          className={`flex items-center gap-2 transition-colors ${
+                            requisito.ok ? "text-emerald-700" : "text-red-600"
+                          }`}
+                        >
+                          {requisito.ok ? (
+                            <GoCheckCircle
+                              aria-hidden="true"
+                              className="shrink-0 text-emerald-600"
+                            />
+                          ) : (
                             <GoXCircle
                               aria-hidden="true"
                               className="shrink-0 text-red-600"
                             />
-                            {requisito.texto}
-                          </li>
-                        ))}
+                          )}
+                          {requisito.texto}
+                        </li>
+                      ))}
                     </ul>
                   )}
                 </div>
@@ -210,20 +323,21 @@ export default function PrimeiroAcesso() {
                     autoComplete="new-password"
                     placeholder="Repita a nova senha"
                     className={`field ${senhasNaoCoincidem ? "border-red-400 focus:border-red-500 focus:ring-red-200" : ""}`}
+                    disabled={senhaBloqueada}
                     value={confirmarSenha}
                     onChange={(e) => setConfirmarSenha(e.target.value)}
                   />
                   {senhasNaoCoincidem && (
                     <p className="mt-2 flex items-center gap-2 text-xs font-bold text-red-600">
                       <GoXCircle aria-hidden="true" />
-                      As senhas nao coincidem
+                      As senhas não coincidem
                     </p>
                   )}
                 </div>
               </div>
 
               <button
-                disabled={salvando || senhasNaoCoincidem}
+                disabled={salvando || senhaBloqueada || senhasNaoCoincidem}
                 className="primary-button mt-6 w-full"
               >
                 <GoKey aria-hidden="true" />
@@ -245,10 +359,10 @@ function senhaAtendeRequisitos(senha: string) {
 
 function obterRequisitosSenha(senha: string) {
   return [
-    { texto: "Minimo 8 caracteres", ok: senha.length >= 8 },
-    { texto: "Uma letra minuscula", ok: /[a-z]/.test(senha) },
-    { texto: "Uma letra maiuscula", ok: /[A-Z]/.test(senha) },
-    { texto: "Um numero", ok: /\d/.test(senha) },
+    { texto: "Mínimo 8 caracteres", ok: senha.length >= 8 },
+    { texto: "Uma letra minúscula", ok: /[a-z]/.test(senha) },
+    { texto: "Uma letra maiúscula", ok: /[A-Z]/.test(senha) },
+    { texto: "Um número", ok: /\d/.test(senha) },
     { texto: "Um caractere especial", ok: /[!@#$%^&*(),.?":{}|<>]/.test(senha) }
   ];
 }

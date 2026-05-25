@@ -4,14 +4,13 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 import {
+  GoAlert,
+  GoCalendar,
   GoCheckCircle,
-  GoClock,
-  GoFile,
   GoPeople,
   GoPerson,
   GoSync
 } from "react-icons/go";
-import { Link } from "react-router-dom";
 
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
@@ -27,13 +26,27 @@ interface Ativo {
   nome: string;
   email: string;
   entrada: string;
+  tempoEmExpediente: string;
+  minutosEmExpediente: number;
+  status: string;
+}
+
+interface ResumoDia {
   data: string;
+  atualizadoEm: string;
+  bolsistasAtivos: number;
+  presentesHoje: number;
+  trabalhandoAgora: number;
+  pendenciasSaida: number;
+  semPontoHoje: number;
+  equipeEmExpediente: Ativo[];
 }
 
 export default function DashboardSupervisor() {
   const nome = localStorage.getItem("nome") || "Supervisor";
   const [bolsistas, setBolsistas] = useState<Bolsista[]>([]);
   const [ativos, setAtivos] = useState<Ativo[]>([]);
+  const [resumoDia, setResumoDia] = useState<ResumoDia | null>(null);
 
   async function carregarBolsistas() {
     try {
@@ -46,10 +59,13 @@ export default function DashboardSupervisor() {
 
   async function carregarAtivos() {
     try {
-      const response = await api.get("/supervisor/ativos");
-      setAtivos(Array.isArray(response.data) ? response.data : []);
+      const response = await api.get("/supervisor/resumo-dia");
+      setResumoDia(response.data);
+      setAtivos(Array.isArray(response.data.equipeEmExpediente)
+        ? response.data.equipeEmExpediente
+        : []);
     } catch {
-      toast.error("Erro ao carregar bolsistas em expediente");
+      toast.error("Erro ao carregar resumo do dia");
     }
   }
 
@@ -75,28 +91,26 @@ export default function DashboardSupervisor() {
             <p className="page-kicker">Visão Geral</p>
             <h1 className="page-title">Olá, {nome}</h1>
             <p className="page-subtitle">
-              Acompanhe a equipe em expediente e acesse rapidamente as rotinas do ponto.
+              Acompanhe a equipe em expediente e monitore os registros do ponto.
+            </p>
+            <p className="mt-2 text-sm font-semibold text-slate-500">
+              Hoje, {resumoDia?.data ?? "--/--/----"} · Atualizado às {resumoDia?.atualizadoEm ?? "--:--"}
             </p>
           </div>
-
-          <Link to="/relatorios" className="primary-button">
-            <GoFile aria-hidden="true" />
-            Gerar Relatório
-          </Link>
         </div>
 
         {/* KPI cards */}
-        <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="metric-card admin-metric-card">
             <span className="admin-stat-icon">
               <GoPeople aria-hidden="true" />
             </span>
             <div>
               <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
-                Bolsistas Cadastrados
+                Acadêmicos Ativos
               </p>
               <strong className="mt-2 block text-4xl text-slate-900">
-                {bolsistas.length}
+                {resumoDia?.bolsistasAtivos ?? bolsistas.length}
               </strong>
             </div>
           </div>
@@ -107,35 +121,47 @@ export default function DashboardSupervisor() {
             </span>
             <div>
               <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
-                Trabalhando Agora
+                Presentes Hoje
               </p>
               <strong className="mt-2 block text-4xl text-emerald-700">
-                {ativos.length}
+                {resumoDia?.presentesHoje ?? 0}
               </strong>
-              <p className="mt-1 text-sm text-slate-500">em expediente</p>
+              <p className="mt-1 text-sm text-slate-500">
+                {resumoDia?.trabalhandoAgora ?? ativos.length} em expediente
+              </p>
             </div>
           </div>
 
           <div className="metric-card admin-metric-card">
-            <span className="admin-stat-icon admin-stat-icon-info">
-              <GoClock aria-hidden="true" />
+            <span className="admin-stat-icon admin-stat-icon-warn">
+              <GoAlert aria-hidden="true" />
             </span>
             <div>
               <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
-                Próxima Ação
+                Pendências
               </p>
-              <strong className="mt-2 block text-xl text-teal-800">
-                Revisar Registros
+              <strong className="mt-2 block text-4xl text-amber-700">
+                {resumoDia?.pendenciasSaida ?? 0}
               </strong>
-              <Link
-                to="/registros"
-                className="mt-2 inline-flex items-center gap-2 text-sm font-bold text-teal-700 hover:text-teal-900"
-              >
-                <GoClock aria-hidden="true" />
-                Abrir Histórico
-              </Link>
+              <p className="mt-1 text-sm text-slate-500">saídas em aberto</p>
             </div>
           </div>
+
+          <div className="metric-card admin-metric-card">
+            <span className="admin-stat-icon">
+              <GoCalendar aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+                Sem Ponto Hoje
+              </p>
+              <strong className="mt-2 block text-4xl text-slate-900">
+                {resumoDia?.semPontoHoje ?? 0}
+              </strong>
+              <p className="mt-1 text-sm text-slate-500">sem entrada registrada</p>
+            </div>
+          </div>
+
         </section>
 
         {/* Active bolsistas */}
@@ -151,14 +177,14 @@ export default function DashboardSupervisor() {
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">Equipe em Expediente</h2>
                 <p className="text-sm text-slate-500">
-                  Bolsistas com entrada registrada e saída pendente.
+                  Entradas abertas hoje, com tempo em expediente.
                 </p>
               </div>
             </div>
 
             <span className="status-pill status-ok">
               <GoSync aria-hidden="true" />
-              Atualização automática
+              Atualizado às {resumoDia?.atualizadoEm ?? "--:--"}
             </span>
           </div>
 
@@ -171,10 +197,10 @@ export default function DashboardSupervisor() {
                 <GoPeople aria-hidden="true" />
               </div>
               <p className="font-bold text-slate-700">
-                Nenhum bolsista em expediente no momento
+                Nenhuma entrada aberta no momento
               </p>
               <p className="mt-1 text-sm text-slate-500">
-                Quando alguém registrar entrada, aparecerá aqui.
+                A equipe com ponto aberto aparecerá aqui em tempo real.
               </p>
             </div>
           ) : (
@@ -187,9 +213,12 @@ export default function DashboardSupervisor() {
                   <div style={{ minWidth: 0 }}>
                     <p className="font-bold text-slate-900 truncate">{ativo.nome}</p>
                     <p className="text-xs text-slate-500 truncate">{ativo.email}</p>
-                    <span className="mt-1 status-pill status-ok" style={{ fontSize: "0.7rem", padding: "2px 8px" }}>
-                      <GoCheckCircle aria-hidden="true" />
-                      Entrada {formatarHorasMinutos(ativo.entrada)}
+                    <span
+                      className={`mt-1 status-pill ${ativo.status === "Atenção" ? "status-warn" : "status-ok"}`}
+                      style={{ fontSize: "0.7rem", padding: "2px 8px" }}
+                    >
+                      {ativo.status === "Atenção" ? <GoAlert aria-hidden="true" /> : <GoCheckCircle aria-hidden="true" />}
+                      Entrada {ativo.entrada} · {formatarHorasMinutos(ativo.tempoEmExpediente)}
                     </span>
                   </div>
                 </div>

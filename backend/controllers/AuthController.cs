@@ -175,6 +175,43 @@ public IActionResult Register(RegisterDto dto)
     });
 }
 
+    [HttpGet("primeiro-acesso/validar-token")]
+    public IActionResult ValidarTokenPrimeiroAcesso([FromQuery] string token)
+    {
+        token = (token ?? "").Trim();
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return BadRequest("Token de primeiro acesso obrigatorio");
+        }
+
+        var tokenHash = GerarHashToken(token);
+
+        var user = _context.Users.FirstOrDefault(u =>
+            u.PrimeiroAcessoTokenHash == tokenHash &&
+            !u.SenhaDefinida
+        );
+
+        if (user == null)
+        {
+            return BadRequest("Link invalido ou ja utilizado");
+        }
+
+        if (
+            !user.PrimeiroAcessoTokenExpiraEm.HasValue ||
+            user.PrimeiroAcessoTokenExpiraEm.Value < DateTime.UtcNow
+        )
+        {
+            return BadRequest("Link expirado. Solicite um novo convite ao supervisor");
+        }
+
+        return Ok(new
+        {
+            mensagem = "Convite valido",
+            expiraEm = user.PrimeiroAcessoTokenExpiraEm
+        });
+    }
+
     [HttpPost("primeiro-acesso/definir-senha")]
     public IActionResult DefinirSenhaPrimeiroAcesso(PrimeiroAcessoDefinirSenhaDto dto)
     {

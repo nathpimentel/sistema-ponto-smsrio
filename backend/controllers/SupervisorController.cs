@@ -372,17 +372,92 @@ var pdf = _pdfService.GerarRelatorio(
                 })
                 .ToList();
 
-            if (!ativos.Any())
-            {
-                return Ok(new
-                {
-                    mensagem = "Nenhum bolsista em trabalho no momento"
-                });
-            }
-
             return Ok(ativos);
 
 
+        }
+
+        [Authorize(Roles = "Supervisor")]
+        [HttpGet("resumo-dia")]
+        public IActionResult ResumoDia()
+        {
+            var hoje = HojeLocal;
+            var agora = DateTime.Now;
+
+            var bolsistasAtivos = _context.Users
+                .Where(u =>
+                    u.TipoUsuario == "Bolsista" &&
+                    u.Aprovado
+                )
+                .ToList();
+
+            var registrosHoje = _context.RegistrosPonto
+                .Where(r => r.Data.Date == hoje)
+                .ToList();
+
+            var presentesHoje = registrosHoje
+                .Where(r => r.Entrada != null)
+                .Select(r => r.UserId)
+                .Distinct()
+                .Count();
+
+            var trabalhandoAgora = registrosHoje
+                .Count(r => r.Entrada != null && r.Saida == null);
+
+            var pendenciasSaida = _context.RegistrosPonto
+                .Count(r =>
+                    r.Data.Date < hoje &&
+                    r.Entrada != null &&
+                    r.Saida == null
+                );
+
+            var usuariosComPontoHoje = registrosHoje
+                .Where(r => r.Entrada != null)
+                .Select(r => r.UserId)
+                .Distinct()
+                .ToHashSet();
+
+            var semPontoHoje = bolsistasAtivos
+                .Count(u => !usuariosComPontoHoje.Contains(u.Id));
+
+            var equipeEmExpediente = _context.RegistrosPonto
+                .Where(r =>
+                    r.Data.Date == hoje &&
+                    r.Entrada != null &&
+                    r.Saida == null
+                )
+                .Select(r => new
+                {
+                    r.User.Nome,
+                    r.User.Email,
+                    r.Entrada
+                })
+                .ToList()
+                .Select(r => new
+                {
+                    nome = r.Nome,
+                    email = r.Email,
+                    entrada = r.Entrada!.Value.ToLocalTime().ToString("HH:mm"),
+                    tempoEmExpediente = FormatarDuracao(agora - r.Entrada.Value.ToLocalTime()),
+                    minutosEmExpediente = Math.Max(0, (int)Math.Floor((agora - r.Entrada.Value.ToLocalTime()).TotalMinutes)),
+                    status = (agora - r.Entrada.Value.ToLocalTime()).TotalHours >= 8
+                        ? "Atenção"
+                        : "Em expediente"
+                })
+                .OrderByDescending(r => r.minutosEmExpediente)
+                .ToList();
+
+            return Ok(new
+            {
+                data = hoje.ToString("dd/MM/yyyy"),
+                atualizadoEm = agora.ToString("HH:mm"),
+                bolsistasAtivos = bolsistasAtivos.Count,
+                presentesHoje,
+                trabalhandoAgora,
+                pendenciasSaida,
+                semPontoHoje,
+                equipeEmExpediente
+            });
         }
 
 
