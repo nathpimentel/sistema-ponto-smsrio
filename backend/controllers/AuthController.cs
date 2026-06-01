@@ -31,6 +31,9 @@ namespace backend.controllers;
 [Route("auth")]
 public class AuthController : ControllerBase
 {
+    private const int MaxFalhasLogin = 5;
+    private static readonly TimeSpan DuracaoBloqueioLogin = TimeSpan.FromMinutes(15);
+
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
     
@@ -46,6 +49,44 @@ private static bool SenhaValida(string senha)
     return senha.Length >= 8 &&
         senha.Any(char.IsDigit) &&
         senha.Any(c => !char.IsLetterOrDigit(c));
+}
+
+private static bool LoginEstaBloqueado(User user, DateTime agoraUtc)
+{
+    return user.BloqueadoAteUtc.HasValue &&
+        user.BloqueadoAteUtc.Value > agoraUtc;
+}
+
+private void RegistrarFalhaLogin(User user, DateTime agoraUtc)
+{
+    user.FalhasLogin += 1;
+    user.UltimaFalhaLoginUtc = agoraUtc;
+
+    if (user.FalhasLogin >= MaxFalhasLogin)
+    {
+        user.FalhasLogin = 0;
+        user.BloqueadoAteUtc = agoraUtc.Add(DuracaoBloqueioLogin);
+    }
+
+    _context.SaveChanges();
+}
+
+private void LimparBloqueioLogin(User user)
+{
+    if (
+        user.FalhasLogin == 0 &&
+        user.UltimaFalhaLoginUtc == null &&
+        user.BloqueadoAteUtc == null
+    )
+    {
+        return;
+    }
+
+    user.FalhasLogin = 0;
+    user.UltimaFalhaLoginUtc = null;
+    user.BloqueadoAteUtc = null;
+
+    _context.SaveChanges();
 }
 
 private User? ObterUsuarioLogado()
@@ -167,20 +208,30 @@ public IActionResult Register(RegisterDto dto)
     public IActionResult Login(LoginDto dto)
     {
         var email = dto.Email.Trim().ToLowerInvariant();
+        var agoraUtc = DateTime.UtcNow;
 
         var user = _context.Users.FirstOrDefault(u => u.Email.ToLower() == email);
 
         if (user == null)
         {
-            return Unauthorized("Usuário inválido");
+            return Unauthorized("Email ou senha inválidos");
+        }
+
+        if (LoginEstaBloqueado(user, agoraUtc))
+        {
+            return Unauthorized("Muitas tentativas inválidas. Tente novamente em alguns minutos");
         }
 
         var senhaCorreta = BCrypt.Net.BCrypt.Verify(dto.Senha, user.SenhaHash);
 
         if (!senhaCorreta)
         {
-            return Unauthorized("Senha inválida");
+            RegistrarFalhaLogin(user, agoraUtc);
+
+            return Unauthorized("Email ou senha inválidos");
         }
+
+        LimparBloqueioLogin(user);
 
         if (user.TipoUsuario == "Bolsista" && !user.Aprovado)
         {

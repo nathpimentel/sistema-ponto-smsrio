@@ -24,4 +24,10 @@ public class User
     public bool Aprovado { get; set; } = false;
 
     public string? FotoBase64 { get; set; }
+
+    public int FalhasLogin { get; set; } = 0;
+
+    public DateTime? UltimaFalhaLoginUtc { get; set; }
+
+    public DateTime? BloqueadoAteUtc { get; set; }
 }
