@@ -10,6 +10,8 @@
 .env
 .env.*
 !.env.example
+**/appsettings.Local.json
+**/appsettings.Production.json
 
 # IDE and OS
 .vs/

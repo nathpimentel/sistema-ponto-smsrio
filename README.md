@@ -1,12 +1,16 @@
-# REPOSITÓRIO SUBG-SMS
+# Repositório SUBG-SMS
 
-## Configuracao sensivel
+## Configuração sensível
 
-As credenciais do banco e a chave JWT nao devem ficar versionadas no
-`appsettings.json`. Configure esses valores por variaveis de ambiente ou por
-User Secrets em desenvolvimento local.
+Credenciais de banco e chaves de assinatura JWT não devem ficar versionadas no
+`appsettings.json`. O arquivo versionado mantém apenas a estrutura esperada,
+sem senha, token ou chave real.
 
-Exemplo de variaveis disponiveis em `.env.example`:
+Use o arquivo `.env.example` e o `backend/appsettings.example.json` apenas como
+referência dos nomes de configuração. Em desenvolvimento local, prefira User
+Secrets do .NET. Em produção, use variáveis de ambiente do servidor/container.
+
+### Variáveis esperadas
 
 ```env
 ConnectionStrings__DefaultConnection=Host=localhost;Port=5432;Database=sistema_ponto;Username=postgres;Password=troque_esta_senha
@@ -14,7 +18,7 @@ Jwt__Key=gere_uma_chave_forte_com_32_caracteres_ou_mais
 Jwt__Issuer=SistemaPonto
 ```
 
-Exemplo com User Secrets:
+### Desenvolvimento local com User Secrets
 
 ```powershell
 cd backend
@@ -23,5 +27,21 @@ dotnet user-secrets set "Jwt:Key" "gere_uma_chave_forte_com_32_caracteres_ou_mai
 dotnet user-secrets set "Jwt:Issuer" "SistemaPonto"
 ```
 
-Credenciais que ja foram versionadas devem ser rotacionadas fora do codigo.
+### Produção
 
+Configure as mesmas chaves por variáveis de ambiente:
+
+```env
+ConnectionStrings__DefaultConnection=...
+Jwt__Key=...
+Jwt__Issuer=...
+```
+
+Se alguma configuração obrigatória estiver ausente, a API falha no boot com uma
+mensagem explícita indicando qual variável precisa ser configurada.
+
+### Rotação obrigatória
+
+Remover secrets do repositório não invalida credenciais que já foram expostas no
+histórico do Git. As senhas e chaves JWT que já foram versionadas devem ser
+rotacionadas fora do código.

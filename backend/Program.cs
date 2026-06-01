@@ -49,14 +49,11 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddAuthorization();
 
-var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
-
-if (string.IsNullOrWhiteSpace(defaultConnection))
-{
-    throw new InvalidOperationException(
-        "Configure ConnectionStrings__DefaultConnection por variavel de ambiente ou User Secrets."
-    );
-}
+var defaultConnection = GetRequiredConfiguration(
+    builder.Configuration,
+    "ConnectionStrings:DefaultConnection",
+    "ConnectionStrings__DefaultConnection"
+);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
@@ -67,14 +64,24 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddScoped<PdfService>();
 
-var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtKey = GetRequiredConfiguration(
+    builder.Configuration,
+    "Jwt:Key",
+    "Jwt__Key"
+);
 
-if (string.IsNullOrWhiteSpace(jwtKey))
+if (jwtKey.Length < 32)
 {
     throw new InvalidOperationException(
-        "Configure Jwt__Key por variavel de ambiente ou User Secrets."
+        "Configure Jwt__Key com pelo menos 32 caracteres por variavel de ambiente ou User Secrets."
     );
 }
+
+var jwtIssuer = GetRequiredConfiguration(
+    builder.Configuration,
+    "Jwt:Issuer",
+    "Jwt__Issuer"
+);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -86,7 +93,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
 
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidIssuer = jwtIssuer,
 
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwtKey)
@@ -131,3 +138,17 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static string GetRequiredConfiguration(IConfiguration configuration, string key, string environmentVariableName)
+{
+    var value = configuration[key];
+
+    if (!string.IsNullOrWhiteSpace(value))
+    {
+        return value;
+    }
+
+    throw new InvalidOperationException(
+        $"Configure {environmentVariableName} por variavel de ambiente ou User Secrets."
+    );
+}
