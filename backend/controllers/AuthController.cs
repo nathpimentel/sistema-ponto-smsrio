@@ -20,6 +20,7 @@ using System.Security.Claims;
 using System.Text;
 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using backend.data;
 using backend.entities;
@@ -164,6 +165,7 @@ public IActionResult Register(RegisterDto dto)
 }
 
     [HttpPost("login")]
+    [EnableRateLimiting("LoginRateLimit")]
     public IActionResult Login(LoginDto dto)
     {
         var email = dto.Email.Trim().ToLowerInvariant();
@@ -172,14 +174,14 @@ public IActionResult Register(RegisterDto dto)
 
         if (user == null)
         {
-            return Unauthorized("Usuário inválido");
+            return Unauthorized("Email ou senha inválidos");
         }
 
         var senhaCorreta = BCrypt.Net.BCrypt.Verify(dto.Senha, user.SenhaHash);
 
         if (!senhaCorreta)
         {
-            return Unauthorized("Senha inválida");
+            return Unauthorized("Email ou senha inválidos");
         }
 
         if (user.TipoUsuario == "Bolsista" && !user.Aprovado)
@@ -205,8 +207,9 @@ public IActionResult Register(RegisterDto dto)
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"] ?? _configuration["Jwt:Issuer"],
             claims: claims,
-            expires: DateTime.Now.AddHours(8),
+            expires: DateTime.UtcNow.AddHours(8),
             signingCredentials: creds
         );
 

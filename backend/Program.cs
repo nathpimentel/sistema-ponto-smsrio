@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using backend.data;
 using Microsoft.OpenApi.Models;
 using backend.services;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,17 +60,21 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddScoped<PdfService>();
 
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? jwtIssuer;
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidateAudience = false,
+            ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
 
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
 
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
@@ -76,15 +82,34 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-    builder.Services.AddCors(options =>
+builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.AllowAnyOrigin()
+            policy.WithOrigins(GetAllowedCorsOrigins(builder.Configuration, builder.Environment))
                   .AllowAnyHeader()
                   .AllowAnyMethod();
         });
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("LoginRateLimit", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                AutoReplenishment = true
+            }
+        )
+    );
 });
 
 var app = builder.Build();
@@ -106,6 +131,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
+app.UseRateLimiter();
+
 app.UseAuthentication();
 
 app.UseAuthorization();
@@ -113,3 +140,41 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static string[] GetAllowedCorsOrigins(IConfiguration configuration, IHostEnvironment environment)
+{
+    var originsFromSection = configuration
+        .GetSection("Cors:AllowedOrigins")
+        .GetChildren()
+        .Select(origin => origin.Value?.Trim())
+        .Where(origin => !string.IsNullOrWhiteSpace(origin))
+        .Cast<string>()
+        .ToArray();
+
+    if (originsFromSection.Length > 0)
+    {
+        return originsFromSection;
+    }
+
+    var originsFromValue = configuration["Cors:AllowedOrigins"]?
+        .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        ?? Array.Empty<string>();
+
+    if (originsFromValue.Length > 0)
+    {
+        return originsFromValue;
+    }
+
+    if (environment.IsDevelopment())
+    {
+        return new[]
+        {
+            "http://localhost:5173",
+            "http://127.0.0.1:5173"
+        };
+    }
+
+    throw new InvalidOperationException(
+        "Configure Cors__AllowedOrigins com as origens permitidas para acessar a API."
+    );
+}
