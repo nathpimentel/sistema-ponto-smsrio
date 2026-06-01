@@ -2,9 +2,9 @@
 
 ## Configuração sensível
 
-Credenciais de banco e chaves de assinatura JWT não devem ficar versionadas no
-`appsettings.json`. O arquivo versionado mantém apenas a estrutura esperada,
-sem senha, token ou chave real.
+Credenciais de banco e chaves de assinatura JWT não devem ficar versionadas.
+O `backend/appsettings.json` é local, ignorado pelo Git, e não deve ser usado
+para compartilhar senha, token ou chave real.
 
 Use o arquivo `.env.example` e o `backend/appsettings.example.json` apenas como
 referência dos nomes de configuração. Em desenvolvimento local, prefira User
@@ -19,6 +19,9 @@ Jwt__Issuer=SistemaPonto
 ```
 
 ### Desenvolvimento local com User Secrets
+
+O projeto já possui `UserSecretsId`, então os comandos abaixo funcionam sem
+versionar secrets no repositório.
 
 ```powershell
 cd backend
@@ -45,3 +48,7 @@ mensagem explícita indicando qual variável precisa ser configurada.
 Remover secrets do repositório não invalida credenciais que já foram expostas no
 histórico do Git. As senhas e chaves JWT que já foram versionadas devem ser
 rotacionadas fora do código.
+
+Se for necessário limpar o histórico público do Git, faça isso em uma operação
+separada e coordenada com o time, usando uma ferramenta como `git filter-repo`
+e `git push --force-with-lease`.
