@@ -49,14 +49,32 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddAuthorization();
 
+var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrWhiteSpace(defaultConnection))
+{
+    throw new InvalidOperationException(
+        "Configure ConnectionStrings__DefaultConnection por variavel de ambiente ou User Secrets."
+    );
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
     options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")
+        defaultConnection
     )
 );
 
 builder.Services.AddScoped<PdfService>();
+
+var jwtKey = builder.Configuration["Jwt:Key"];
+
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    throw new InvalidOperationException(
+        "Configure Jwt__Key por variavel de ambiente ou User Secrets."
+    );
+}
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -71,7 +89,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
 
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
+                Encoding.UTF8.GetBytes(jwtKey)
             )
         };
     });

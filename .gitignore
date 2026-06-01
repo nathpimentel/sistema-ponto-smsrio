@@ -1,0 +1,21 @@
+# .NET
+**/bin/
+**/obj/
+
+# Frontend
+**/node_modules/
+**/dist/
+
+# Environment variables and local secrets
+.env
+.env.*
+!.env.example
+
+# IDE and OS
+.vs/
+.vscode/
+*.user
+*.suo
+*.log
+Thumbs.db
+Desktop.ini
