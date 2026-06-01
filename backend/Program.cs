@@ -73,7 +73,7 @@ var jwtKey = GetRequiredConfiguration(
 if (jwtKey.Length < 32)
 {
     throw new InvalidOperationException(
-        "Configure Jwt__Key com pelo menos 32 caracteres por variavel de ambiente ou User Secrets."
+        "Configure Jwt__Key com pelo menos 32 caracteres por variável de ambiente ou User Secrets."
     );
 }
 
@@ -149,6 +149,6 @@ static string GetRequiredConfiguration(IConfiguration configuration, string key,
     }
 
     throw new InvalidOperationException(
-        $"Configure {environmentVariableName} por variavel de ambiente ou User Secrets."
+        $"Configure {environmentVariableName} por variável de ambiente ou User Secrets."
     );
 }
