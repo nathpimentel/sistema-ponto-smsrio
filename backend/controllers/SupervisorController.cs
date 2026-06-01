@@ -3,6 +3,7 @@ using backend.data;
 using backend.dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace backend.controllers;
 
@@ -61,6 +62,18 @@ public class SupervisorController : ControllerBase
             DateTimeKind.Local => data.ToUniversalTime(),
             _ => DateTime.SpecifyKind(data, DateTimeKind.Local).ToUniversalTime()
         };
+    }
+
+    private int? ObterSupervisorId()
+    {
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (int.TryParse(idClaim, out var userId))
+        {
+            return userId;
+        }
+
+        return null;
     }
 
     [Authorize(Roles = "Supervisor")]
@@ -157,7 +170,15 @@ public IActionResult BuscarTodosRegistros(
                 tempoTrabalhado =
                     r.Entrada != null && r.Saida != null
                         ? FormatarDuracao(r.Saida.Value - r.Entrada.Value)
-                        : null
+                        : null,
+
+                ajustadoEm = r.AjustadoEmUtc != null
+                    ? ParaHorarioRio(r.AjustadoEmUtc.Value).ToString("dd/MM/yyyy HH:mm")
+                    : null,
+
+                ajustadoPorUsuarioId = r.AjustadoPorUsuarioId,
+
+                justificativaAjuste = r.JustificativaAjuste
             })
             .ToList();
 
@@ -558,6 +579,20 @@ public IActionResult AjustarRegistro(int id, AjustarRegistroPontoDto dto)
         return BadRequest("Informe ao menos um campo para ajuste");
     }
 
+    var justificativa = (dto.Justificativa ?? "").Trim();
+
+    if (string.IsNullOrWhiteSpace(justificativa))
+    {
+        return BadRequest("Informe a justificativa do ajuste");
+    }
+
+    var supervisorId = ObterSupervisorId();
+
+    if (supervisorId == null)
+    {
+        return Unauthorized();
+    }
+
     if (dto.Data.HasValue)
     {
         registro.Data = NormalizarUtc(dto.Data.Value).Date;
@@ -582,11 +617,16 @@ public IActionResult AjustarRegistro(int id, AjustarRegistroPontoDto dto)
         return BadRequest("A saída não pode ser anterior à entrada");
     }
 
+    registro.AjustadoEmUtc = DateTime.UtcNow;
+    registro.AjustadoPorUsuarioId = supervisorId.Value;
+    registro.JustificativaAjuste = justificativa;
+
     _context.SaveChanges();
 
     return Ok(new
     {
-        mensagem = "Registro ajustado com sucesso"
+        mensagem = "Registro ajustado com sucesso",
+        ajustadoEm = ParaHorarioRio(registro.AjustadoEmUtc.Value).ToString("dd/MM/yyyy HH:mm")
     });
 }
 

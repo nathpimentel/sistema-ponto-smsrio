@@ -7,4 +7,6 @@ public class AjustarRegistroPontoDto
     public DateTime? Entrada { get; set; }
 
     public DateTime? Saida { get; set; }
+
+    public string? Justificativa { get; set; }
 }

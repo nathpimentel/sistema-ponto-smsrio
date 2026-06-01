@@ -27,4 +27,10 @@ public class RegistroPonto
 
     public DateTime? Saida { get; set; }
 
+    public DateTime? AjustadoEmUtc { get; set; }
+
+    public int? AjustadoPorUsuarioId { get; set; }
+
+    public string? JustificativaAjuste { get; set; }
+
 }
