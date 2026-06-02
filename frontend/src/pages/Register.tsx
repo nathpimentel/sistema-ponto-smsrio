@@ -134,7 +134,7 @@ export default function Register() {
                   <input
                     type="email"
                     autoComplete="username"
-                    placeholder="nome@email.com"
+                    placeholder="nome.smsrio@gmail.com"
                     className="field"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}

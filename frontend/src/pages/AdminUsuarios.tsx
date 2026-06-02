@@ -142,7 +142,7 @@ export default function AdminUsuarios() {
               className="primary-button"
             >
               <GoPersonAdd aria-hidden="true" />
-              Novo usuario
+              Novo usuário
             </Link>
 
             <button

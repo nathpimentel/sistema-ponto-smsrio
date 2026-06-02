@@ -2,6 +2,8 @@ import axios from "axios";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import {
+  GoEye,
+  GoEyeClosed,
   GoKey,
   GoSignIn
 } from "react-icons/go";
@@ -18,6 +20,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
 
   async function fazerLogin(e: React.FormEvent<HTMLFormElement>) {
@@ -100,14 +103,24 @@ export default function Login() {
               />
 
               <label className="field-label">Senha</label>
-              <input
-                type="password"
-                autoComplete="current-password"
-                placeholder="Digite sua senha"
-                className="field mb-7"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-              />
+              <div className="relative mb-7">
+                <input
+                  type={mostrarSenha ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="Digite sua senha"
+                  className="field pr-24"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarSenha(!mostrarSenha)}
+                  className="absolute right-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"
+                  aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+                >
+                  {mostrarSenha ? <GoEyeClosed aria-hidden="true" /> : <GoEye aria-hidden="true" />}
+                </button>
+              </div>
 
               <button disabled={carregando} className="primary-button w-full">
                 <GoSignIn aria-hidden="true" />
