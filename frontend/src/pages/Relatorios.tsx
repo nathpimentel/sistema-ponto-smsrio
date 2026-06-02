@@ -11,7 +11,6 @@ import {
 
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
-import { gerarPdfPresenca } from "../utils/gerarPdfPresenca";
 
 interface Bolsista {
   id: number;
@@ -86,15 +85,18 @@ export default function Relatorios() {
       }
 
       const response = await api.get(
-        `/supervisor/registros?${params.toString()}`
+        `/supervisor/relatorio-pdf?${params.toString()}`,
+        { responseType: "blob" }
       );
 
-      await gerarPdfPresenca(
-        busca || "Bolsista",
-        Number(mes),
-        Number(ano),
-        response.data
-      );
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `relatorio-ponto-${mes.padStart(2, "0")}-${ano}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
 
       toast.success("Relatório gerado");
     } catch {

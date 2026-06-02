@@ -7,7 +7,31 @@ namespace backend.services;
 
 public class PdfService
 {
-    private static string FormatarHorasLegivel(string? valor)
+    private static string FormatarHorario(string? valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+        {
+            return "";
+        }
+
+        var partes = valor.Split(":");
+
+        if (partes.Length < 2)
+        {
+            return valor;
+        }
+
+        var horas = int.TryParse(partes[0], out var horasNumero)
+            ? horasNumero
+            : 0;
+        var minutos = int.TryParse(partes[1], out var minutosNumero)
+            ? minutosNumero
+            : 0;
+
+        return $"{horas:D2}h{minutos:D2}";
+    }
+
+    private static string FormatarDuracao(string? valor)
     {
         if (string.IsNullOrWhiteSpace(valor))
         {
@@ -62,7 +86,7 @@ public class PdfService
         .Text($"Mês/Ano: {mes:D2}/{ano}");
 
     column.Item()
-        .Text($"Carga Horária Total: {FormatarHorasLegivel(totalHorasMes)}");
+        .Text($"Carga Horária Total: {FormatarDuracao(totalHorasMes)}");
 });
 
 page.Content().Table(table =>
@@ -102,11 +126,11 @@ foreach (dynamic r in registros)
 
     table.Cell().Text((string)r.data);
 
-    table.Cell().Text(FormatarHorasLegivel((string)r.entrada));
+    table.Cell().Text(FormatarHorario((string)r.entrada));
 
-    table.Cell().Text(FormatarHorasLegivel((string)r.saida));
+    table.Cell().Text(FormatarHorario((string)r.saida));
 
-    table.Cell().Text(FormatarHorasLegivel((string)r.horasTrabalhadas));
+    table.Cell().Text(FormatarDuracao((string)r.horasTrabalhadas));
 }
 });
 

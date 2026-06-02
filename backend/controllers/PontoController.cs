@@ -17,8 +17,30 @@ public class PontoController : ControllerBase
         _context = context;
     }
 
-    private static DateTime HojeLocal =>
-        DateTime.SpecifyKind(DateTime.Now.Date, DateTimeKind.Utc);
+    private static DateTime HojeUtc => DateTime.UtcNow.Date;
+
+    private static readonly TimeZoneInfo FusoRio = ObterFusoRio();
+
+    private static TimeZoneInfo ObterFusoRio()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
+        }
+    }
+
+    private static DateTime ParaHorarioRio(DateTime dataUtc)
+    {
+        var utc = dataUtc.Kind == DateTimeKind.Utc
+            ? dataUtc
+            : DateTime.SpecifyKind(dataUtc, DateTimeKind.Utc);
+
+        return TimeZoneInfo.ConvertTimeFromUtc(utc, FusoRio);
+    }
 
     private static string FormatarDuracao(TimeSpan duracao)
     {
@@ -66,7 +88,12 @@ public class PontoController : ControllerBase
         );
     }
 
-        var hoje = HojeLocal;
+        if (!user.Aprovado)
+        {
+            return Forbid();
+        }
+
+        var hoje = HojeUtc;
 
         var registroPendente = _context.RegistrosPonto
             .FirstOrDefault(r =>
@@ -77,17 +104,6 @@ public class PontoController : ControllerBase
         if (registroPendente != null)
         {
             return BadRequest("Existe uma entrada pendente para registrar saída");
-        }
-
-        var registroExistente = _context.RegistrosPonto
-            .FirstOrDefault(r =>
-                r.UserId == user.Id &&
-                r.Data.Date == hoje
-            );
-
-        if (registroExistente != null)
-        {
-            return BadRequest("Entrada já registrada hoje");
         }
 
         var registro = new RegistroPonto
@@ -104,7 +120,9 @@ public class PontoController : ControllerBase
         return Ok(new
         {
             mensagem = "Entrada registrada com sucesso",
-            horario = registro.Entrada?.ToLocalTime()
+            horario = registro.Entrada.HasValue
+                ? (DateTime?)ParaHorarioRio(registro.Entrada.Value)
+                : null
         });
     }
 
@@ -126,7 +144,12 @@ public class PontoController : ControllerBase
         );
     }
 
-        var hoje = HojeLocal;
+        if (!user.Aprovado)
+        {
+            return Forbid();
+        }
+
+        var hoje = HojeUtc;
 
         var registroPendente = _context.RegistrosPonto
             .FirstOrDefault(r =>
@@ -157,22 +180,19 @@ public class PontoController : ControllerBase
 
         registro.Saida = DateTime.UtcNow;
 
-        if (registro.Entrada != null)
-        {
-            var horas = registro.Saida.Value - registro.Entrada.Value;
-
-            registro.HorasTrabalhadas = horas.TotalHours;
-        }
-
         _context.SaveChanges();
 
         return Ok(new
         {
             mensagem = "Saída registrada com sucesso",
 
-            entrada = registro.Entrada?.ToLocalTime(),
+            entrada = registro.Entrada.HasValue
+                ? (DateTime?)ParaHorarioRio(registro.Entrada.Value)
+                : null,
 
-            saida = registro.Saida?.ToLocalTime(),
+            saida = registro.Saida.HasValue
+                ? (DateTime?)ParaHorarioRio(registro.Saida.Value)
+                : null,
 
             tempoTrabalhado = registro.Entrada != null && registro.Saida != null
     ? FormatarDuracao(registro.Saida.Value - registro.Entrada.Value)
@@ -195,21 +215,18 @@ public IActionResult MeusRegistros()
     var registros = _context.RegistrosPonto
         .Where(r => r.UserId == user.Id)
         .OrderByDescending(r => r.Data)
+        .ToList()
         .Select(r => new
         {
             data = r.Data
                 .ToString("dd/MM/yyyy"),
 
             entrada = r.Entrada != null
-                ? r.Entrada.Value
-                    .ToLocalTime()
-                    .ToString("HH:mm")
+                ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
                 : "",
 
             saida = r.Saida != null
-                ? r.Saida.Value
-                    .ToLocalTime()
-                    .ToString("HH:mm")
+                ? ParaHorarioRio(r.Saida.Value).ToString("HH:mm")
                 : "",
 
             horas =
@@ -233,7 +250,7 @@ public IActionResult Resumo()
         return Unauthorized();
     }
 
-    var hoje = HojeLocal;
+    var hoje = HojeUtc;
 
     var registros = _context.RegistrosPonto
         .Where(r =>
@@ -272,13 +289,13 @@ public IActionResult Resumo()
             $"{horas:D2}:{minutos:D2}",
 
         totalRegistros =
-            registros.Count,
+            registros.Count(r => r.Entrada != null && r.Saida != null),
 
         trabalhandoAgora,
 
         inicioExpediente =
             registroAberto?.Entrada != null
-                ? registroAberto.Entrada.Value.ToLocalTime().ToString("yyyy-MM-ddTHH:mm:ss")
+                ? registroAberto.Entrada.Value.ToUniversalTime().ToString("O")
                 : null
     });
 }

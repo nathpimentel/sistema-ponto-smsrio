@@ -8,8 +8,6 @@ Horário entrada.
 Saida
 Horário saída.
 
-HorasTrabalhadas
-Total horas do dia.
 */
 
 
@@ -29,5 +27,4 @@ public class RegistroPonto
 
     public DateTime? Saida { get; set; }
 
-    public double? HorasTrabalhadas { get; set; }
 }

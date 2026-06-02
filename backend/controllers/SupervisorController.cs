@@ -1,5 +1,6 @@
 using backend.services;
 using backend.data;
+using backend.dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,13 +22,45 @@ public class SupervisorController : ControllerBase
         _pdfService = pdfService;
     }
 
-    private static DateTime HojeLocal =>
-        DateTime.SpecifyKind(DateTime.Now.Date, DateTimeKind.Utc);
+    private static DateTime HojeUtc => DateTime.UtcNow.Date;
+
+    private static readonly TimeZoneInfo FusoRio = ObterFusoRio();
+
+    private static TimeZoneInfo ObterFusoRio()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
+        }
+    }
+
+    private static DateTime ParaHorarioRio(DateTime dataUtc)
+    {
+        var utc = dataUtc.Kind == DateTimeKind.Utc
+            ? dataUtc
+            : DateTime.SpecifyKind(dataUtc, DateTimeKind.Utc);
+
+        return TimeZoneInfo.ConvertTimeFromUtc(utc, FusoRio);
+    }
 
     private static string FormatarDuracao(TimeSpan duracao)
     {
         var totalMinutos = Math.Max(0, (int)Math.Floor(duracao.TotalMinutes));
         return $"{totalMinutos / 60:D2}:{totalMinutos % 60:D2}";
+    }
+
+    private static DateTime NormalizarUtc(DateTime data)
+    {
+        return data.Kind switch
+        {
+            DateTimeKind.Utc => data,
+            DateTimeKind.Local => data.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(data, DateTimeKind.Local).ToUniversalTime()
+        };
     }
 
     [Authorize(Roles = "Supervisor")]
@@ -96,8 +129,11 @@ public IActionResult BuscarTodosRegistros(
         var registros = query
             .OrderBy(r => r.User.Nome)
             .ThenBy(r => r.Data)
+            .ToList()
             .Select(r => new
             {
+                id = r.Id,
+
                 nome = r.User.Nome,
 
                 email = r.User.Email,
@@ -111,11 +147,11 @@ public IActionResult BuscarTodosRegistros(
                 data = r.Data.ToString("dd/MM/yyyy"),
 
                 entrada = r.Entrada != null
-                    ? r.Entrada.Value.ToLocalTime().ToString("HH:mm")
+                    ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
                     : null,
 
                 saida = r.Saida != null
-                    ? r.Saida.Value.ToLocalTime().ToString("HH:mm")
+                    ? ParaHorarioRio(r.Saida.Value).ToString("HH:mm")
                     : null,
 
                 tempoTrabalhado =
@@ -190,19 +226,37 @@ public IActionResult GerarRelatorioPdf(
 
       var termoBusca = busca.Trim().ToLower();
 
-      var user = _context.Users
-    .FirstOrDefault(u =>
+      var candidatos = _context.Users
+    .Where(u =>
         u.TipoUsuario == "Bolsista" &&
         (
             u.Email.ToLower() == termoBusca ||
             u.Nome.ToLower().Contains(termoBusca)
         )
-    );
+    )
+    .Select(u => new
+    {
+        u.Id,
+        u.Nome,
+        u.Email
+    })
+    .ToList();
 
-        if (user == null)
+        if (!candidatos.Any())
         {
             return NotFound("Nenhum bolsista encontrado com esse nome ou e-mail");
         }
+
+        if (candidatos.Count > 1)
+        {
+            return BadRequest(new
+            {
+                mensagem = "Mais de um bolsista encontrado. Selecione pelo email.",
+                candidatos
+            });
+        }
+
+        var user = candidatos[0];
 
         nomeRelatorio = user.Nome;
 
@@ -228,11 +282,11 @@ public IActionResult GerarRelatorioPdf(
                 data = r.Data.ToString("dd/MM/yyyy"),
 
                 entrada = r.Entrada != null
-                    ? r.Entrada.Value.ToLocalTime().ToString("HH:mm")
+                    ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
                     : "",
 
                 saida = r.Saida != null
-                    ? r.Saida.Value.ToLocalTime().ToString("HH:mm")
+                    ? ParaHorarioRio(r.Saida.Value).ToString("HH:mm")
                     : "",
 
                 horasTrabalhadas =
@@ -296,11 +350,11 @@ public IActionResult GerarRelatorioPdf(
                 data = r.Data.ToString("dd/MM/yyyy"),
 
                 entrada = r.Entrada != null
-                    ? r.Entrada.Value.ToLocalTime().ToString("HH:mm")
+                    ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
                     : "",
 
                 saida = r.Saida != null
-                    ? r.Saida.Value.ToLocalTime().ToString("HH:mm")
+                    ? ParaHorarioRio(r.Saida.Value).ToString("HH:mm")
                     : "",
 
                 horasTrabalhadas =
@@ -354,19 +408,18 @@ var pdf = _pdfService.GerarRelatorio(
         {
             var ativos = _context.RegistrosPonto
                 .Where(r =>
-                    r.Data.Date == HojeLocal &&
+                    r.Data.Date == HojeUtc &&
                     r.Entrada != null &&
                     r.Saida == null
                 )
+                .ToList()
                 .Select(r => new
                 {
                     nome = r.User.Nome,
 
                     email = r.User.Email,
 
-                    entrada = r.Entrada!.Value
-                        .ToLocalTime()
-                        .ToString("HH:mm"),
+                    entrada = ParaHorarioRio(r.Entrada!.Value).ToString("HH:mm"),
 
                     data = r.Data.ToString("dd/MM/yyyy")
                 })
@@ -385,6 +438,89 @@ var pdf = _pdfService.GerarRelatorio(
 
         }
 
+        [Authorize(Roles = "Supervisor")]
+        [HttpGet("resumo-dia")]
+        public IActionResult ResumoDia()
+        {
+            var hoje = HojeUtc;
+            var agoraUtc = DateTime.UtcNow;
+            var agoraLocal = ParaHorarioRio(agoraUtc);
+
+            var bolsistasAtivos = _context.Users
+                .Where(u =>
+                    u.TipoUsuario == "Bolsista" &&
+                    u.Aprovado
+                )
+                .ToList();
+
+            var registrosHoje = _context.RegistrosPonto
+                .Where(r => r.Data.Date == hoje)
+                .ToList();
+
+            var presentesHoje = registrosHoje
+                .Where(r => r.Entrada != null)
+                .Select(r => r.UserId)
+                .Distinct()
+                .Count();
+
+            var trabalhandoAgora = registrosHoje
+                .Count(r => r.Entrada != null && r.Saida == null);
+
+            var pendenciasSaida = _context.RegistrosPonto
+                .Count(r =>
+                    r.Data.Date < hoje &&
+                    r.Entrada != null &&
+                    r.Saida == null
+                );
+
+            var usuariosComPontoHoje = registrosHoje
+                .Where(r => r.Entrada != null)
+                .Select(r => r.UserId)
+                .Distinct()
+                .ToHashSet();
+
+            var semPontoHoje = bolsistasAtivos
+                .Count(u => !usuariosComPontoHoje.Contains(u.Id));
+
+            var equipeEmExpediente = _context.RegistrosPonto
+                .Where(r =>
+                    r.Data.Date == hoje &&
+                    r.Entrada != null &&
+                    r.Saida == null
+                )
+                .Select(r => new
+                {
+                    r.User.Nome,
+                    r.User.Email,
+                    r.Entrada
+                })
+                .ToList()
+                .Select(r => new
+                {
+                    nome = r.Nome,
+                    email = r.Email,
+                    entrada = ParaHorarioRio(r.Entrada!.Value).ToString("HH:mm"),
+                    tempoEmExpediente = FormatarDuracao(agoraUtc - r.Entrada.Value),
+                    minutosEmExpediente = Math.Max(0, (int)Math.Floor((agoraUtc - r.Entrada.Value).TotalMinutes)),
+                    status = (agoraUtc - r.Entrada.Value).TotalHours >= 8
+                        ? "Atenção"
+                        : "Em expediente"
+                })
+                .OrderByDescending(r => r.minutosEmExpediente)
+                .ToList();
+
+            return Ok(new
+            {
+                data = hoje.ToString("dd/MM/yyyy"),
+                atualizadoEm = agoraLocal.ToString("HH:mm"),
+                bolsistasAtivos = bolsistasAtivos.Count,
+                presentesHoje,
+                trabalhandoAgora,
+                pendenciasSaida,
+                semPontoHoje,
+                equipeEmExpediente
+            });
+        }
 
 [Authorize(Roles = "Supervisor")]
 [HttpPut("desativar/{id}")]
@@ -403,6 +539,55 @@ public IActionResult DesativarUsuario(int id)
     _context.SaveChanges();
 
     return Ok();
+}
+
+[Authorize(Roles = "Supervisor")]
+[HttpPut("registros/{id}/ajustar")]
+public IActionResult AjustarRegistro(int id, AjustarRegistroPontoDto dto)
+{
+    var registro = _context.RegistrosPonto
+        .FirstOrDefault(r => r.Id == id);
+
+    if (registro == null)
+    {
+        return NotFound("Registro não encontrado");
+    }
+
+    if (dto.Entrada == null && dto.Saida == null && dto.Data == null)
+    {
+        return BadRequest("Informe ao menos um campo para ajuste");
+    }
+
+    if (dto.Data.HasValue)
+    {
+        registro.Data = NormalizarUtc(dto.Data.Value).Date;
+    }
+
+    if (dto.Entrada.HasValue)
+    {
+        registro.Entrada = NormalizarUtc(dto.Entrada.Value);
+    }
+
+    if (dto.Saida.HasValue)
+    {
+        registro.Saida = NormalizarUtc(dto.Saida.Value);
+    }
+
+    if (
+        registro.Entrada.HasValue &&
+        registro.Saida.HasValue &&
+        registro.Saida.Value < registro.Entrada.Value
+    )
+    {
+        return BadRequest("A saída não pode ser anterior à entrada");
+    }
+
+    _context.SaveChanges();
+
+    return Ok(new
+    {
+        mensagem = "Registro ajustado com sucesso"
+    });
 }
 
 [Authorize(Roles = "Supervisor")]
@@ -471,11 +656,11 @@ public IActionResult ExcluirUsuario(int id)
                     data = r.Data.ToString("dd/MM/yyyy"),
 
                     entrada = r.Entrada != null
-                        ? r.Entrada.Value.ToLocalTime().ToString("HH:mm")
+                        ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
                         : null,
 
                     saida = r.Saida != null
-                        ? r.Saida.Value.ToLocalTime().ToString("HH:mm")
+                        ? ParaHorarioRio(r.Saida.Value).ToString("HH:mm")
                         : null,
 
                     horasTrabalhadas = tempo != null
