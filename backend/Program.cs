@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using backend.data;
 using Microsoft.OpenApi.Models;
 using backend.services;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,11 +66,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidateAudience = false,
+            ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
 
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
 
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
@@ -76,24 +79,50 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-    builder.Services.AddCors(options =>
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? [];
+
+builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.AllowAnyOrigin()
+            policy.WithOrigins(allowedOrigins)
                   .AllowAnyHeader()
                   .AllowAnyMethod();
         });
 });
 
+var permitLimit = builder.Configuration.GetValue<int>("RateLimit:Login:PermitLimit", 5);
+var windowSeconds = builder.Configuration.GetValue<int>("RateLimit:Login:WindowSeconds", 60);
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("login", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = permitLimit;
+        limiterOptions.Window = TimeSpan.FromSeconds(windowSeconds);
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await context.HttpContext.Response.WriteAsync(
+            "Muitas tentativas de login. Aguarde um momento e tente novamente.",
+            cancellationToken
+        );
+    };
+});
+
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
-}
+// Migrations devem ser aplicadas manualmente antes do deploy:
+//   dotnet ef database update
+// Nunca rodar Migrate() no boot em produção (conflito entre réplicas).
 
 if (app.Environment.IsDevelopment())
 {
@@ -105,6 +134,8 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection();
 
 app.UseCors("AllowFrontend");
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 

@@ -23,6 +23,7 @@ using System.Text;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using backend.data;
 using backend.entities;
 using BCrypt.Net;
@@ -294,6 +295,7 @@ public IActionResult Register(RegisterDto dto)
         });
     }
 
+    [EnableRateLimiting("login")]
     [HttpPost("login")]
     public IActionResult Login(LoginDto dto)
     {
@@ -341,8 +343,9 @@ public IActionResult Register(RegisterDto dto)
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.Now.AddHours(8),
+            expires: DateTime.UtcNow.AddHours(8),
             signingCredentials: creds
         );
 
