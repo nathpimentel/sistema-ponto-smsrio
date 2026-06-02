@@ -36,9 +36,6 @@ namespace backend.Migrations
                     b.Property<DateTime?>("Entrada")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<double?>("HorasTrabalhadas")
-                        .HasColumnType("double precision");
-
                     b.Property<DateTime?>("Saida")
                         .HasColumnType("timestamp with time zone");
 
