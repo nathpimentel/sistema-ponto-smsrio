@@ -13,7 +13,7 @@ import {
 
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
-import { formatarHorasMinutos } from "../utils/formatarHoras";
+import { formatarDuracao, formatarHorario } from "../utils/formatarHoras";
 
 interface Registro {
   nome: string;
@@ -410,7 +410,7 @@ export default function Registros() {
                           {pasta.registros.length} registro(s)
                         </span>
                         <span className="status-pill status-ok">
-                          {formatarHorasMinutos(pasta.totalHoras)}
+                          {formatarDuracao(pasta.totalHoras)}
                         </span>
                         <button
                           type="button"
@@ -542,9 +542,9 @@ export default function Registros() {
                                 registrosDaPasta.map((registro, index) => (
                                   <tr key={`${registro.email}-${registro.data}-${index}`}>
                                     <td className="font-bold">{registro.data}</td>
-                                    <td>{registro.entrada ? formatarHorasMinutos(registro.entrada) : "-"}</td>
-                                    <td>{registro.saida ? formatarHorasMinutos(registro.saida) : "-"}</td>
-                                    <td>{formatarHorasMinutos(registro.tempoTrabalhado)}</td>
+                                    <td>{registro.entrada ? formatarHorario(registro.entrada) : "-"}</td>
+                                    <td>{registro.saida ? formatarHorario(registro.saida) : "-"}</td>
+                                    <td>{formatarDuracao(registro.tempoTrabalhado)}</td>
                                   </tr>
                                 ))
                               )}
