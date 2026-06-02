@@ -16,6 +16,7 @@ Depois:
 using backend.dtos;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Mail;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -25,6 +26,8 @@ using Microsoft.AspNetCore.Mvc;
 using backend.data;
 using backend.entities;
 using BCrypt.Net;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace backend.controllers;
 
@@ -66,6 +69,24 @@ private static string GerarHashToken(string token)
     );
 }
 
+private static bool EmailValido(string email)
+{
+    if (string.IsNullOrWhiteSpace(email) || email.Length > 320)
+    {
+        return false;
+    }
+
+    try
+    {
+        var endereco = new MailAddress(email);
+        return endereco.Address.Equals(email, StringComparison.OrdinalIgnoreCase);
+    }
+    catch
+    {
+        return false;
+    }
+}
+
 private User? ObterUsuarioLogado()
 {
     var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -105,17 +126,21 @@ public IActionResult Register(RegisterDto dto)
     )
     {
         return BadRequest(
-            "Nome e email sao obrigatorios"
+            "Informe o nome completo e o email do academico bolsista"
         );
     }
 
-    if (
-        tipoUsuario != "Supervisor" &&
-        tipoUsuario != "Bolsista"
-    )
+    if (!EmailValido(email))
     {
         return BadRequest(
-            "Tipo de usuário inválido"
+            "Email invalido. Verifique o endereco informado para o academico bolsista"
+        );
+    }
+
+    if (tipoUsuario != "Bolsista")
+    {
+        return BadRequest(
+            "Cadastro interno permite criar apenas academicos bolsistas"
         );
     }
 
@@ -128,7 +153,7 @@ public IActionResult Register(RegisterDto dto)
     )
     {
         return BadRequest(
-            "Carga horaria semanal e obrigatoria para bolsistas"
+            "Selecione a carga horaria semanal do academico bolsista"
         );
     }
 
@@ -138,7 +163,7 @@ public IActionResult Register(RegisterDto dto)
     if (emailExiste)
     {
         return BadRequest(
-            "Email já cadastrado"
+            "Este email ja esta cadastrado para outro usuario"
         );
     }
 
@@ -163,7 +188,15 @@ public IActionResult Register(RegisterDto dto)
 
     _context.Users.Add(user);
 
-    _context.SaveChanges();
+    try
+    {
+        _context.SaveChanges();
+    }
+    catch (DbUpdateException ex)
+        when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+    {
+        return BadRequest("Este email ja esta cadastrado para outro usuario");
+    }
 
     return Ok(new
     {
@@ -270,7 +303,7 @@ public IActionResult Register(RegisterDto dto)
 
         if (user == null)
         {
-            return Unauthorized("Usuário inválido");
+            return Unauthorized("Dados invalidos");
         }
 
         if (!user.SenhaDefinida)
@@ -282,7 +315,7 @@ public IActionResult Register(RegisterDto dto)
 
         if (!senhaCorreta)
         {
-            return Unauthorized("Senha inválida");
+            return Unauthorized("Dados invalidos");
         }
 
         if (!user.Aprovado)
