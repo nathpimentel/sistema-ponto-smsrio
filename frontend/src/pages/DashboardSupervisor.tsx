@@ -15,7 +15,7 @@ import { Link } from "react-router-dom";
 
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
-import { formatarHorasMinutos } from "../utils/formatarHoras";
+import { formatarHorarioLocal } from "../utils/formatarHoras";
 
 interface Bolsista {
   id: number;
@@ -189,7 +189,7 @@ export default function DashboardSupervisor() {
                     <p className="text-xs text-slate-500 truncate">{ativo.email}</p>
                     <span className="mt-1 status-pill status-ok" style={{ fontSize: "0.7rem", padding: "2px 8px" }}>
                       <GoCheckCircle aria-hidden="true" />
-                      Entrada {formatarHorasMinutos(ativo.entrada)}
+                      Entrada {formatarHorarioLocal(ativo.entrada)}
                     </span>
                   </div>
                 </div>

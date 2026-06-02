@@ -14,7 +14,11 @@ import { Link } from "react-router-dom";
 
 import SidebarBolsista from "../components/SidebarBolsista";
 import api from "../services/api";
-import { formatarHorasMinutos } from "../utils/formatarHoras";
+import {
+  formatarDataPonto,
+  formatarHorarioLocal,
+  formatarHorasMinutos
+} from "../utils/formatarHoras";
 
 interface Registro {
   data: string;
@@ -290,9 +294,9 @@ export default function DashboardBolsista() {
                 ) : (
                   registros.map((registro, index) => (
                     <tr key={`${registro.data}-${index}`}>
-                      <td className="font-bold">{registro.data}</td>
-                      <td>{registro.entrada ? formatarHorasMinutos(registro.entrada) : "-"}</td>
-                      <td>{registro.saida ? formatarHorasMinutos(registro.saida) : "-"}</td>
+                      <td className="font-bold">{formatarDataPonto(registro.data)}</td>
+                      <td>{registro.entrada ? formatarHorarioLocal(registro.entrada) : "-"}</td>
+                      <td>{registro.saida ? formatarHorarioLocal(registro.saida) : "-"}</td>
                       <td>{formatarHorasMinutos(registro.horas)}</td>
                     </tr>
                   ))

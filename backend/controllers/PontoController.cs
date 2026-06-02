@@ -19,33 +19,22 @@ public class PontoController : ControllerBase
 
     private static DateTime HojeUtc => DateTime.UtcNow.Date;
 
-    private static readonly TimeZoneInfo FusoRio = ObterFusoRio();
-
-    private static TimeZoneInfo ObterFusoRio()
-    {
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
-        }
-        catch (TimeZoneNotFoundException)
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
-        }
-    }
-
-    private static DateTime ParaHorarioRio(DateTime dataUtc)
-    {
-        var utc = dataUtc.Kind == DateTimeKind.Utc
-            ? dataUtc
-            : DateTime.SpecifyKind(dataUtc, DateTimeKind.Utc);
-
-        return TimeZoneInfo.ConvertTimeFromUtc(utc, FusoRio);
-    }
-
     private static string FormatarDuracao(TimeSpan duracao)
     {
         var totalMinutos = Math.Max(0, (int)Math.Floor(duracao.TotalMinutes));
         return $"{totalMinutos / 60:D2}:{totalMinutos % 60:D2}";
+    }
+
+    private static string ParaIsoUtc(DateTime data)
+    {
+        var utc = data.Kind switch
+        {
+            DateTimeKind.Utc => data,
+            DateTimeKind.Local => data.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(data, DateTimeKind.Utc)
+        };
+
+        return utc.ToString("O");
     }
 
     private User? ObterUsuarioLogado()
@@ -121,7 +110,7 @@ public class PontoController : ControllerBase
         {
             mensagem = "Entrada registrada com sucesso",
             horario = registro.Entrada.HasValue
-                ? (DateTime?)ParaHorarioRio(registro.Entrada.Value)
+                ? ParaIsoUtc(registro.Entrada.Value)
                 : null
         });
     }
@@ -187,11 +176,11 @@ public class PontoController : ControllerBase
             mensagem = "Saída registrada com sucesso",
 
             entrada = registro.Entrada.HasValue
-                ? (DateTime?)ParaHorarioRio(registro.Entrada.Value)
+                ? ParaIsoUtc(registro.Entrada.Value)
                 : null,
 
             saida = registro.Saida.HasValue
-                ? (DateTime?)ParaHorarioRio(registro.Saida.Value)
+                ? ParaIsoUtc(registro.Saida.Value)
                 : null,
 
             tempoTrabalhado = registro.Entrada != null && registro.Saida != null
@@ -219,14 +208,14 @@ public IActionResult MeusRegistros()
         .Select(r => new
         {
             data = r.Data
-                .ToString("dd/MM/yyyy"),
+                .ToString("yyyy-MM-dd"),
 
             entrada = r.Entrada != null
-                ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
+                ? ParaIsoUtc(r.Entrada.Value)
                 : "",
 
             saida = r.Saida != null
-                ? ParaHorarioRio(r.Saida.Value).ToString("HH:mm")
+                ? ParaIsoUtc(r.Saida.Value)
                 : "",
 
             horas =
@@ -289,7 +278,11 @@ public IActionResult Resumo()
             $"{horas:D2}:{minutos:D2}",
 
         totalRegistros =
-            registros.Count(r => r.Entrada != null && r.Saida != null),
+            registros
+                .Where(r => r.Entrada != null && r.Saida != null)
+                .Select(r => r.Data.Date)
+                .Distinct()
+                .Count(),
 
         trabalhandoAgora,
 

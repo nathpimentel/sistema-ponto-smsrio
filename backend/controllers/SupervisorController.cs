@@ -54,6 +54,18 @@ public class SupervisorController : ControllerBase
         return $"{totalMinutos / 60:D2}:{totalMinutos % 60:D2}";
     }
 
+    private static string ParaIsoUtc(DateTime data)
+    {
+        var utc = data.Kind switch
+        {
+            DateTimeKind.Utc => data,
+            DateTimeKind.Local => data.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(data, DateTimeKind.Utc)
+        };
+
+        return utc.ToString("O");
+    }
+
     private static DateTime NormalizarUtc(DateTime data)
     {
         return data.Kind switch
@@ -157,14 +169,14 @@ public IActionResult BuscarTodosRegistros(
 
                 cargaHorariaSemanal = r.User.CargaHorariaSemanal,
 
-                data = r.Data.ToString("dd/MM/yyyy"),
+                data = r.Data.ToString("yyyy-MM-dd"),
 
                 entrada = r.Entrada != null
-                    ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
+                    ? ParaIsoUtc(r.Entrada.Value)
                     : null,
 
                 saida = r.Saida != null
-                    ? ParaHorarioRio(r.Saida.Value).ToString("HH:mm")
+                    ? ParaIsoUtc(r.Saida.Value)
                     : null,
 
                 tempoTrabalhado =
@@ -173,7 +185,7 @@ public IActionResult BuscarTodosRegistros(
                         : null,
 
                 ajustadoEm = r.AjustadoEmUtc != null
-                    ? ParaHorarioRio(r.AjustadoEmUtc.Value).ToString("dd/MM/yyyy HH:mm")
+                    ? ParaIsoUtc(r.AjustadoEmUtc.Value)
                     : null,
 
                 ajustadoPorUsuarioId = r.AjustadoPorUsuarioId,
@@ -440,9 +452,9 @@ var pdf = _pdfService.GerarRelatorio(
 
                     email = r.User.Email,
 
-                    entrada = ParaHorarioRio(r.Entrada!.Value).ToString("HH:mm"),
+                    entrada = ParaIsoUtc(r.Entrada!.Value),
 
-                    data = r.Data.ToString("dd/MM/yyyy")
+                    data = r.Data.ToString("yyyy-MM-dd")
                 })
                 .ToList();
 
@@ -465,7 +477,6 @@ var pdf = _pdfService.GerarRelatorio(
         {
             var hoje = HojeUtc;
             var agoraUtc = DateTime.UtcNow;
-            var agoraLocal = ParaHorarioRio(agoraUtc);
 
             var bolsistasAtivos = _context.Users
                 .Where(u =>
@@ -520,7 +531,7 @@ var pdf = _pdfService.GerarRelatorio(
                 {
                     nome = r.Nome,
                     email = r.Email,
-                    entrada = ParaHorarioRio(r.Entrada!.Value).ToString("HH:mm"),
+                    entrada = ParaIsoUtc(r.Entrada!.Value),
                     tempoEmExpediente = FormatarDuracao(agoraUtc - r.Entrada.Value),
                     minutosEmExpediente = Math.Max(0, (int)Math.Floor((agoraUtc - r.Entrada.Value).TotalMinutes)),
                     status = (agoraUtc - r.Entrada.Value).TotalHours >= 8
@@ -532,8 +543,8 @@ var pdf = _pdfService.GerarRelatorio(
 
             return Ok(new
             {
-                data = hoje.ToString("dd/MM/yyyy"),
-                atualizadoEm = agoraLocal.ToString("HH:mm"),
+                data = hoje.ToString("yyyy-MM-dd"),
+                atualizadoEm = ParaIsoUtc(agoraUtc),
                 bolsistasAtivos = bolsistasAtivos.Count,
                 presentesHoje,
                 trabalhandoAgora,
@@ -626,7 +637,7 @@ public IActionResult AjustarRegistro(int id, AjustarRegistroPontoDto dto)
     return Ok(new
     {
         mensagem = "Registro ajustado com sucesso",
-        ajustadoEm = ParaHorarioRio(registro.AjustadoEmUtc.Value).ToString("dd/MM/yyyy HH:mm")
+        ajustadoEm = ParaIsoUtc(registro.AjustadoEmUtc.Value)
     });
 }
 
@@ -693,14 +704,14 @@ public IActionResult ExcluirUsuario(int id)
 
                 return new
                 {
-                    data = r.Data.ToString("dd/MM/yyyy"),
+                    data = r.Data.ToString("yyyy-MM-dd"),
 
                     entrada = r.Entrada != null
-                        ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
+                        ? ParaIsoUtc(r.Entrada.Value)
                         : null,
 
                     saida = r.Saida != null
-                        ? ParaHorarioRio(r.Saida.Value).ToString("HH:mm")
+                        ? ParaIsoUtc(r.Saida.Value)
                         : null,
 
                     horasTrabalhadas = tempo != null

@@ -13,7 +13,11 @@ import {
 
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
-import { formatarHorasMinutos } from "../utils/formatarHoras";
+import {
+  formatarDataPonto,
+  formatarHorarioLocal,
+  formatarHorasMinutos
+} from "../utils/formatarHoras";
 
 interface Registro {
   nome: string;
@@ -72,6 +76,14 @@ const diasSemana = [
 ];
 
 function dataBrParaDate(data: string) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+    const [ano, mes, dia] = data
+      .split("-")
+      .map(Number);
+
+    return new Date(ano, mes - 1, dia);
+  }
+
   const [dia, mes, ano] = data
     .split("/")
     .map(Number);
@@ -80,6 +92,10 @@ function dataBrParaDate(data: string) {
 }
 
 function dataBrParaInput(data: string) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+    return data;
+  }
+
   const [dia, mes, ano] = data.split("/");
 
   if (!dia || !mes || !ano) {
@@ -151,7 +167,7 @@ export default function Registros() {
   const registrosFiltrados = useMemo(() => {
     return registros.filter((registro) => {
       const termo = busca.toLowerCase();
-      const partesData = registro.data.split("/");
+      const partesData = formatarDataPonto(registro.data).split("/");
 
       const matchBusca =
         busca === "" ||
@@ -261,7 +277,7 @@ export default function Registros() {
         dataRegistro.getDay().toString() === filtros.dia;
       const matchMes =
         filtros.mes === "" ||
-        registro.data.split("/")[1] === filtros.mes;
+        formatarDataPonto(registro.data).split("/")[1] === filtros.mes;
 
       return matchData && matchDia && matchMes;
     });
@@ -541,9 +557,9 @@ export default function Registros() {
                               ) : (
                                 registrosDaPasta.map((registro, index) => (
                                   <tr key={`${registro.email}-${registro.data}-${index}`}>
-                                    <td className="font-bold">{registro.data}</td>
-                                    <td>{registro.entrada ? formatarHorasMinutos(registro.entrada) : "-"}</td>
-                                    <td>{registro.saida ? formatarHorasMinutos(registro.saida) : "-"}</td>
+                                    <td className="font-bold">{formatarDataPonto(registro.data)}</td>
+                                    <td>{registro.entrada ? formatarHorarioLocal(registro.entrada) : "-"}</td>
+                                    <td>{registro.saida ? formatarHorarioLocal(registro.saida) : "-"}</td>
                                     <td>{formatarHorasMinutos(registro.tempoTrabalhado)}</td>
                                   </tr>
                                 ))
