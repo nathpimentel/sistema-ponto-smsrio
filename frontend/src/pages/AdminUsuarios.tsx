@@ -15,7 +15,6 @@ import {
   GoSearch,
   GoShieldCheck,
   GoSync,
-  GoTrash,
   GoXCircle
 } from "react-icons/go";
 import { Link } from "react-router-dom";
@@ -40,8 +39,6 @@ export default function AdminUsuarios() {
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroTipo, setFiltroTipo] = useState("todos");
-  const [modalExcluir, setModalExcluir] = useState(false);
-  const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
 
   const usuariosFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -99,18 +96,6 @@ export default function AdminUsuarios() {
       carregarUsuarios();
     } catch {
       toast.error("Erro ao desativar usuário");
-    }
-  }
-
-  async function excluirUsuario(id: number) {
-    try {
-      await api.delete(`/supervisor/excluir/${id}`);
-      toast.success("Usuário Excluído");
-      setModalExcluir(false);
-      setUsuarioSelecionado(null);
-      carregarUsuarios();
-    } catch {
-      toast.error("Erro ao excluir usuário");
     }
   }
 
@@ -400,16 +385,6 @@ export default function AdminUsuarios() {
                             </button>
                           )}
 
-                          <button
-                            onClick={() => {
-                              setUsuarioSelecionado(usuario);
-                              setModalExcluir(true);
-                            }}
-                            className="danger-button min-h-0 px-3 py-2 text-sm"
-                          >
-                            <GoTrash aria-hidden="true" />
-                            Excluir
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -421,37 +396,6 @@ export default function AdminUsuarios() {
         </section>
       </main>
 
-      {modalExcluir && usuarioSelecionado && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4">
-          <div className="panel w-full max-w-md">
-            <h2 className="text-2xl font-bold text-slate-900">
-              Confirmar exclusão
-            </h2>
-
-            <p className="mt-3 text-slate-600">
-              Deseja excluir permanentemente o usuário {usuarioSelecionado.nome}?
-            </p>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={() => setModalExcluir(false)}
-                className="secondary-button"
-              >
-                <GoXCircle aria-hidden="true" />
-                Cancelar
-              </button>
-
-              <button
-                onClick={() => excluirUsuario(usuarioSelecionado.id)}
-                className="danger-button"
-              >
-                <GoTrash aria-hidden="true" />
-                Excluir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

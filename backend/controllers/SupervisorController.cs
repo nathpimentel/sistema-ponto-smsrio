@@ -571,33 +571,10 @@ public class SupervisorController : ControllerBase
         });
     }
 
-    [Authorize(Roles = "Supervisor")]
-    [HttpDelete("excluir/{id}")]
-    public IActionResult ExcluirUsuario(int id)
-    {
-        var user = _context.Users
-            .FirstOrDefault(u => u.Id == id);
-
-        if (user == null)
-        {
-            return NotFound();
-        }
-
-        var registros = _context.RegistrosPonto
-            .Where(r => r.UserId == id)
-            .ToList();
-
-        _context.RegistrosPonto.RemoveRange(registros);
-
-        _context.Users.Remove(user);
-
-        _context.SaveChanges();
-
-        return Ok(new
-        {
-            mensagem = "Usuário excluído"
-        });
-    }
+    // Exclusão física removida: apagava o histórico de ponto do bolsista,
+    // o que viola auditoria trabalhista. Use PUT /supervisor/desativar/{id}
+    // para inativar o acesso preservando os registros.
+    // Deleção por LGPD deve ser feita por processo administrativo formalizado.
 
     [Authorize(Roles = "Supervisor")]
     [HttpGet("relatorio-mensal/{userId}")]
