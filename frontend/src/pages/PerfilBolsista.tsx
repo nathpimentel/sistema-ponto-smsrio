@@ -19,6 +19,7 @@ import {
 import Sidebar from "../components/Sidebar";
 import SidebarBolsista from "../components/SidebarBolsista";
 import api from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Perfil {
   nome: string;
@@ -79,7 +80,7 @@ async function recortarImagem(
 }
 
 export default function PerfilBolsista() {
-  const tipoUsuarioLocal = localStorage.getItem("tipoUsuario");
+  const { tipoUsuario: tipoUsuarioLocal } = useAuth();
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");

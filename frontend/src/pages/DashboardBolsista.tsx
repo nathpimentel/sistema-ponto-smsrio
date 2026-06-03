@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import SidebarBolsista from "../components/SidebarBolsista";
 import api from "../services/api";
 import { formatarDuracao, formatarHorario } from "../utils/formatarHoras";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Registro {
   data: string;
@@ -38,7 +39,7 @@ function mensagemErroPadrao(error: unknown, fallback: string) {
 }
 
 export default function DashboardBolsista() {
-  const nome = localStorage.getItem("nome") || "Bolsista";
+  const { nome } = useAuth();
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [resumo, setResumo] = useState<Resumo>({
     totalHoras: "00:00",

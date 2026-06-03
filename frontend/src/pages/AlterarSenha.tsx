@@ -7,10 +7,11 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import SidebarBolsista from "../components/SidebarBolsista";
 import api from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function AlterarSenha() {
   const navigate = useNavigate();
-  const tipoUsuario = localStorage.getItem("tipoUsuario");
+  const { tipoUsuario } = useAuth();
   const [senhaAtual, setSenhaAtual] = useState("");
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmacao, setConfirmacao] = useState("");

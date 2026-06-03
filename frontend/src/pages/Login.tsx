@@ -15,9 +15,11 @@ import {
 import edificio from "../assets/sms-edificio.jpg";
 import logo from "../assets/prefeitura-logo.png";
 import api from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -30,9 +32,7 @@ export default function Login() {
     try {
       const response = await api.post("/auth/login", { email, senha });
 
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("tipoUsuario", response.data.tipoUsuario);
-      localStorage.setItem("nome", response.data.nome);
+      login(response.data.token, response.data.tipoUsuario, response.data.nome);
 
       if (response.data.tipoUsuario === "Supervisor") {
         navigate("/dashboard");

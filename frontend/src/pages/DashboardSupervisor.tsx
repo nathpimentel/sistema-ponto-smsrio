@@ -15,6 +15,7 @@ import {
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
 import { formatarHorasMinutos } from "../utils/formatarHoras";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Bolsista {
   id: number;
@@ -43,7 +44,7 @@ interface ResumoDia {
 }
 
 export default function DashboardSupervisor() {
-  const nome = localStorage.getItem("nome") || "Supervisor";
+  const { nome } = useAuth();
   const [bolsistas, setBolsistas] = useState<Bolsista[]>([]);
   const [ativos, setAtivos] = useState<Ativo[]>([]);
   const [resumoDia, setResumoDia] = useState<ResumoDia | null>(null);

@@ -11,6 +11,7 @@ import {
 } from "react-icons/go";
 
 import logo from "../assets/prefeitura-logo.png";
+import { useAuth } from "../contexts/AuthContext";
 
 interface SidebarLink {
   to: string;
@@ -29,10 +30,10 @@ const links: SidebarLink[] = [
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const nome = localStorage.getItem("nome") || "Supervisor";
+  const { nome, logout } = useAuth();
 
-  function logout() {
-    localStorage.clear();
+  function handleLogout() {
+    logout();
     navigate("/");
   }
 
@@ -46,10 +47,10 @@ export default function Sidebar() {
 
       <div className="sidebar-user-section">
         <div className="sidebar-avatar">
-          {nome.charAt(0).toUpperCase()}
+          {(nome ?? "S").charAt(0).toUpperCase()}
         </div>
         <div style={{ minWidth: 0 }}>
-          <p className="sidebar-username">{nome}</p>
+          <p className="sidebar-username">{nome ?? "Supervisor"}</p>
           <p className="sidebar-role">
             <GoShieldCheck aria-hidden="true" />
             Supervisor
@@ -79,7 +80,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-logout">
-        <button onClick={logout} className="nav-button">
+        <button onClick={handleLogout} className="nav-button">
           <GoSignOut aria-hidden="true" />
           Sair do sistema
         </button>
