@@ -35,13 +35,16 @@ interface Usuario {
   fotoBase64?: string | null;
 }
 
+const TAMANHO_PAGINA = 25;
+
 export default function AdminUsuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroTipo, setFiltroTipo] = useState("todos");
-  const [modalExcluir, setModalExcluir] = useState(false);
-  const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
+  const [pagina, setPagina] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   const usuariosFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -73,10 +76,15 @@ export default function AdminUsuarios() {
   const bolsistas = usuarios.filter((usuario) => usuario.tipoUsuario === "Bolsista").length;
   const supervisores = usuarios.filter((usuario) => usuario.tipoUsuario === "Supervisor").length;
 
-  async function carregarUsuarios() {
+  async function carregarUsuarios(paginaAtual = 1) {
     try {
-      const response = await api.get("/supervisor/usuarios");
-      setUsuarios(response.data);
+      const response = await api.get(
+        `/supervisor/usuarios?pagina=${paginaAtual}&tamanhoPagina=${TAMANHO_PAGINA}`
+      );
+      setUsuarios(response.data.items);
+      setPagina(response.data.pagina);
+      setTotalPaginas(response.data.totalPaginas);
+      setTotalItems(response.data.totalItems);
     } catch {
       toast.error("Erro ao carregar usuários");
     }
@@ -86,7 +94,7 @@ export default function AdminUsuarios() {
     try {
       await api.put(`/supervisor/aprovar/${id}`, {});
       toast.success("Usuário Aprovado");
-      carregarUsuarios();
+      carregarUsuarios(pagina);
     } catch {
       toast.error("Erro ao aprovar usuário");
     }
@@ -96,7 +104,7 @@ export default function AdminUsuarios() {
     try {
       await api.put(`/supervisor/desativar/${id}`, {});
       toast.success("Usuário Desativado");
-      carregarUsuarios();
+      carregarUsuarios(pagina);
     } catch {
       toast.error("Erro ao desativar usuário");
     }
@@ -146,7 +154,7 @@ export default function AdminUsuarios() {
             </Link>
 
             <button
-              onClick={carregarUsuarios}
+              onClick={() => carregarUsuarios(pagina)}
               className="secondary-button"
             >
               <GoSync aria-hidden="true" />
@@ -286,13 +294,13 @@ export default function AdminUsuarios() {
                 Lista de Usuários
               </h2>
               <p className="text-sm text-slate-500">
-                {usuariosFiltrados.length} usuário(s) exibidos com os filtros atuais.
+                {usuariosFiltrados.length} usuário(s) nesta página · {totalItems} no total
               </p>
             </div>
 
             <span className="status-pill status-muted">
               <GoPeople aria-hidden="true" />
-              {usuarios.length} no sistema
+              página {pagina} de {totalPaginas}
             </span>
           </div>
 
@@ -418,6 +426,28 @@ export default function AdminUsuarios() {
               </tbody>
             </table>
           </div>
+
+          {totalPaginas > 1 && (
+            <div className="mt-6 flex items-center justify-center gap-2">
+              <button
+                className="secondary-button min-h-0 px-3 py-2 text-sm"
+                disabled={pagina <= 1}
+                onClick={() => carregarUsuarios(pagina - 1)}
+              >
+                ← Anterior
+              </button>
+              <span className="text-sm text-slate-600">
+                {pagina} / {totalPaginas}
+              </span>
+              <button
+                className="secondary-button min-h-0 px-3 py-2 text-sm"
+                disabled={pagina >= totalPaginas}
+                onClick={() => carregarUsuarios(pagina + 1)}
+              >
+                Próxima →
+              </button>
+            </div>
+          )}
         </section>
       </main>
 

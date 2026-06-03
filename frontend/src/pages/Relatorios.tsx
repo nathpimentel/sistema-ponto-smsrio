@@ -59,8 +59,8 @@ export default function Relatorios() {
 
   async function carregarBolsistas() {
     try {
-      const response = await api.get("/supervisor/bolsistas");
-      setBolsistas(response.data);
+      const response = await api.get("/supervisor/bolsistas?tamanhoPagina=200");
+      setBolsistas(response.data.items);
     } catch {
       toast.error("Erro ao carregar bolsistas");
     }

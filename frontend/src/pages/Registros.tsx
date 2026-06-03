@@ -110,19 +110,35 @@ function somarHoras(registros: Registro[]) {
     .padStart(2, "0")}`;
 }
 
+const TAMANHO_PAGINA = 20;
+
 export default function Registros() {
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [bolsistas, setBolsistas] = useState<Bolsista[]>([]);
   const [busca, setBusca] = useState("");
   const [mes, setMes] = useState("");
   const [ano, setAno] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [pastasAbertas, setPastasAbertas] = useState<Record<string, boolean>>({});
   const [filtrosPastas, setFiltrosPastas] = useState<Record<string, FiltrosPasta>>({});
 
-  async function carregarRegistros() {
+  async function carregarRegistros(paginaAtual = 1) {
     try {
-      const response = await api.get("/supervisor/registros");
-      setRegistros(response.data);
+      const params = new URLSearchParams({
+        pagina: String(paginaAtual),
+        tamanhoPagina: String(TAMANHO_PAGINA)
+      });
+      if (mes) params.set("mes", mes);
+      if (ano) params.set("ano", ano);
+      if (busca.trim()) params.set("busca", busca.trim());
+
+      const response = await api.get(`/supervisor/registros?${params}`);
+      setRegistros(response.data.items);
+      setPagina(response.data.pagina);
+      setTotalPaginas(response.data.totalPaginas);
+      setTotalItems(response.data.totalItems);
     } catch {
       toast.error("Erro ao carregar registros");
     }
@@ -130,19 +146,24 @@ export default function Registros() {
 
   async function carregarBolsistas() {
     try {
-      const response = await api.get("/supervisor/bolsistas");
-      setBolsistas(response.data);
+      const response = await api.get("/supervisor/bolsistas?tamanhoPagina=200");
+      setBolsistas(response.data.items);
     } catch {
       toast.error("Erro ao carregar bolsistas");
     }
   }
 
-  async function atualizarDados() {
+  async function atualizarDados(paginaAtual = 1) {
     await Promise.all([
       carregarBolsistas(),
-      carregarRegistros()
+      carregarRegistros(paginaAtual)
     ]);
   }
+
+  useEffect(() => {
+    atualizarDados(1);
+    setPagina(1);
+  }, [mes, ano, busca]);
 
   useEffect(() => {
     atualizarDados();
@@ -349,15 +370,15 @@ export default function Registros() {
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-2xl font-bold text-slate-900">
-                Pastas dos bolsistas
+                Registros
               </h2>
               <p className="text-sm text-slate-500">
-                {pastasBolsistas.length} pasta(s) com {registrosFiltrados.length} registro(s).
+                {totalItems} registro(s) · página {pagina} de {totalPaginas}
               </p>
             </div>
 
             <button
-              onClick={atualizarDados}
+              onClick={() => atualizarDados(pagina)}
               className="secondary-button"
             >
               <GoSync aria-hidden="true" />
@@ -556,6 +577,29 @@ export default function Registros() {
                   </article>
                 );
               })}
+            </div>
+          )}
+          {totalPaginas > 1 && (
+            <div className="mt-6 flex items-center justify-center gap-2">
+              <button
+                className="secondary-button min-h-0 px-3 py-2 text-sm"
+                disabled={pagina <= 1}
+                onClick={() => carregarRegistros(pagina - 1)}
+              >
+                ← Anterior
+              </button>
+
+              <span className="text-sm text-slate-600">
+                {pagina} / {totalPaginas}
+              </span>
+
+              <button
+                className="secondary-button min-h-0 px-3 py-2 text-sm"
+                disabled={pagina >= totalPaginas}
+                onClick={() => carregarRegistros(pagina + 1)}
+              >
+                Próxima →
+              </button>
             </div>
           )}
         </section>
