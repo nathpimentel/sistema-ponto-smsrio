@@ -46,6 +46,7 @@ export default function DashboardBolsista() {
     trabalhandoAgora: false,
     inicioExpediente: null
   });
+  const [carregando, setCarregando] = useState(true);
   const [agora, setAgora] = useState(() => new Date());
 
   async function baterEntrada() {
@@ -93,8 +94,10 @@ export default function DashboardBolsista() {
   useEffect(() => {
     const controller = new AbortController();
 
-    carregarHistorico(controller.signal);
-    carregarResumo(controller.signal);
+    Promise.all([
+      carregarHistorico(controller.signal),
+      carregarResumo(controller.signal)
+    ]).finally(() => setCarregando(false));
 
     const interval = setInterval(
       () => carregarResumo(controller.signal),
@@ -130,6 +133,29 @@ export default function DashboardBolsista() {
       hour: "2-digit",
       minute: "2-digit"
     });
+  }
+
+  if (carregando) {
+    return (
+      <div className="app-shell">
+        <SidebarBolsista />
+        <main className="app-main">
+          <div className="animate-pulse space-y-4 pt-6">
+            <div className="h-8 w-48 rounded-lg bg-slate-200" />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="h-40 rounded-xl bg-slate-200" />
+              <div className="h-40 rounded-xl bg-slate-200" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div className="h-28 rounded-xl bg-slate-200" />
+              <div className="col-span-2 h-28 rounded-xl bg-slate-200" />
+              <div className="h-28 rounded-xl bg-slate-200" />
+            </div>
+            <div className="h-64 rounded-xl bg-slate-200" />
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (

@@ -47,6 +47,7 @@ export default function DashboardSupervisor() {
   const [bolsistas, setBolsistas] = useState<Bolsista[]>([]);
   const [ativos, setAtivos] = useState<Ativo[]>([]);
   const [resumoDia, setResumoDia] = useState<ResumoDia | null>(null);
+  const [carregando, setCarregando] = useState(true);
 
   async function carregarBolsistas(signal?: AbortSignal) {
     try {
@@ -74,8 +75,10 @@ export default function DashboardSupervisor() {
   useEffect(() => {
     const controller = new AbortController();
 
-    carregarBolsistas(controller.signal);
-    carregarAtivos(controller.signal);
+    Promise.all([
+      carregarBolsistas(controller.signal),
+      carregarAtivos(controller.signal)
+    ]).finally(() => setCarregando(false));
 
     const interval = setInterval(() => {
       carregarBolsistas(controller.signal);
@@ -87,6 +90,26 @@ export default function DashboardSupervisor() {
       clearInterval(interval);
     };
   }, []);
+
+  if (carregando) {
+    return (
+      <div className="app-shell">
+        <Sidebar />
+        <main className="app-main">
+          <div className="animate-pulse space-y-4 pt-6">
+            <div className="h-8 w-48 rounded-lg bg-slate-200" />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="h-28 rounded-xl bg-slate-200" />
+              <div className="h-28 rounded-xl bg-slate-200" />
+              <div className="h-28 rounded-xl bg-slate-200" />
+              <div className="h-28 rounded-xl bg-slate-200" />
+            </div>
+            <div className="h-72 rounded-xl bg-slate-200" />
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">
