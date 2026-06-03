@@ -1,9 +1,6 @@
 import AdminUsuarios
 from "./pages/AdminUsuarios";
 
-import AlterarSenha
-from "./pages/AlterarSenha";
-
 import {
   Toaster,
   ToastBar,
@@ -126,15 +123,6 @@ export default function App() {
 <Route
   path="/primeiro-acesso"
   element={<PrimeiroAcesso />}
-/>
-
-      <Route
-  path="/alterar-senha"
-  element={
-    <PrivateRoute>
-      <AlterarSenha />
-    </PrivateRoute>
-  }
 />
 
       <Route
