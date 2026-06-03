@@ -28,7 +28,11 @@ public class User
 
     public int? CargaHorariaSemanal { get; set; }
     
+    // Aprovado: one-way, setado na primeira aprovacao pelo supervisor
     public bool Aprovado { get; set; } = false;
+
+    // Ativo: toggle — false bloqueia login mesmo com Aprovado=true
+    public bool Ativo { get; set; } = true;
 
     public string? FotoBase64 { get; set; }
 }

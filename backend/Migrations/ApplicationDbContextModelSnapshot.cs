@@ -60,6 +60,10 @@ namespace backend.Migrations
                     b.Property<bool>("Aprovado")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("Ativo")
+                        .HasDefaultValue(true)
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("CargaHorariaSemanal")
                         .HasColumnType("integer");
 

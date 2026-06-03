@@ -86,7 +86,7 @@ public class PontoController : ControllerBase
             return BadRequest("Supervisor não pode bater ponto");
         }
 
-        if (!user.Aprovado)
+        if (!user.Aprovado || !user.Ativo)
         {
             return Forbid();
         }
@@ -140,7 +140,7 @@ public class PontoController : ControllerBase
             return BadRequest("Supervisor não pode bater saída");
         }
 
-        if (!user.Aprovado)
+        if (!user.Aprovado || !user.Ativo)
         {
             return Forbid();
         }

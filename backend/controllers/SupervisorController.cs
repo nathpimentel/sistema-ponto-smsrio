@@ -78,6 +78,7 @@ public class SupervisorController : ControllerBase
                 u.CursoFaculdade,
                 u.CargaHorariaSemanal,
                 u.Aprovado,
+                u.Ativo,
                 u.FotoBase64
             })
             .ToList();
@@ -430,7 +431,8 @@ public class SupervisorController : ControllerBase
         var bolsistasAtivos = _context.Users
             .Where(u =>
                 u.TipoUsuario == "Bolsista" &&
-                u.Aprovado
+                u.Aprovado &&
+                u.Ativo
             )
             .ToList();
 
@@ -515,7 +517,7 @@ public class SupervisorController : ControllerBase
             return NotFound();
         }
 
-        user.Aprovado = false;
+        user.Ativo = false;
 
         _context.SaveChanges();
 

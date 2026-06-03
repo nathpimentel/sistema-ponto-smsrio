@@ -322,9 +322,12 @@ public IActionResult Register(RegisterDto dto)
 
         if (!user.Aprovado)
         {
-            return Unauthorized(
-                "Usuario inativo ou aguardando aprovacao"
-            );
+            return Unauthorized("Cadastro aguardando aprovacao do supervisor");
+        }
+
+        if (!user.Ativo)
+        {
+            return Unauthorized("Conta desativada. Contate o supervisor");
         }
 
         var claims = new[]
