@@ -69,8 +69,7 @@ public class SupervisorController : ControllerBase
     public async Task<IActionResult> Usuarios(CancellationToken cancellationToken = default)
     {
         var usuarios = await _context.Users
-            .Select(u => new
-            {
+            .Select(u => new UsuarioResponse(
                 u.Id,
                 u.Nome,
                 u.Email,
@@ -80,7 +79,7 @@ public class SupervisorController : ControllerBase
                 u.CargaHorariaSemanal,
                 u.Aprovado,
                 u.FotoBase64
-            })
+            ))
             .ToListAsync(cancellationToken);
 
         return Ok(usuarios);
@@ -131,35 +130,24 @@ public class SupervisorController : ControllerBase
             .OrderBy(r => r.User.Nome)
             .ThenBy(r => r.Data)
             .ToListAsync(cancellationToken))
-            .Select(r => new
-            {
-                id = r.Id,
-
-                nome = r.User.Nome,
-
-                email = r.User.Email,
-
-                curso = r.User.CursoFaculdade,
-
-                unidade = r.User.Unidade,
-
-                cargaHorariaSemanal = r.User.CargaHorariaSemanal,
-
-                data = r.Data.ToString("dd/MM/yyyy"),
-
-                entrada = r.Entrada != null
+            .Select(r => new RegistroPontoResponse(
+                r.Id,
+                r.User.Nome,
+                r.User.Email,
+                r.User.CursoFaculdade,
+                r.User.Unidade,
+                r.User.CargaHorariaSemanal,
+                r.Data.ToString("dd/MM/yyyy"),
+                r.Entrada != null
                     ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
                     : null,
-
-                saida = r.Saida != null
+                r.Saida != null
                     ? ParaHorarioRio(r.Saida.Value).ToString("HH:mm")
                     : null,
-
-                tempoTrabalhado =
-                    r.Entrada != null && r.Saida != null
-                        ? FormatarDuracao(r.Saida.Value - r.Entrada.Value)
-                        : null
-            })
+                r.Entrada != null && r.Saida != null
+                    ? FormatarDuracao(r.Saida.Value - r.Entrada.Value)
+                    : null
+            ))
             .ToList();
 
         return Ok(registros);
@@ -370,15 +358,14 @@ public class SupervisorController : ControllerBase
     {
         var bolsistas = await _context.Users
             .Where(u => u.TipoUsuario == "Bolsista")
-            .Select(u => new
-            {
-                id = u.Id,
-                nome = u.Nome,
-                email = u.Email,
-                curso = u.CursoFaculdade,
-                unidade = u.Unidade,
-                cargaHorariaSemanal = u.CargaHorariaSemanal
-            })
+            .Select(u => new BolsistaResponse(
+                u.Id,
+                u.Nome,
+                u.Email,
+                u.CursoFaculdade,
+                u.Unidade,
+                u.CargaHorariaSemanal
+            ))
             .ToListAsync(cancellationToken);
 
         return Ok(bolsistas);
@@ -468,31 +455,29 @@ public class SupervisorController : ControllerBase
                 r.Entrada
             })
             .ToListAsync(cancellationToken))
-            .Select(r => new
-            {
-                nome = r.Nome,
-                email = r.Email,
-                entrada = ParaHorarioRio(r.Entrada!.Value).ToString("HH:mm"),
-                tempoEmExpediente = FormatarDuracao(agoraUtc - r.Entrada.Value),
-                minutosEmExpediente = Math.Max(0, (int)Math.Floor((agoraUtc - r.Entrada.Value).TotalMinutes)),
-                status = (agoraUtc - r.Entrada.Value).TotalHours >= 8
+            .Select(r => new MembroExpedienteResponse(
+                r.Nome,
+                r.Email,
+                ParaHorarioRio(r.Entrada!.Value).ToString("HH:mm"),
+                FormatarDuracao(agoraUtc - r.Entrada.Value),
+                Math.Max(0, (int)Math.Floor((agoraUtc - r.Entrada.Value).TotalMinutes)),
+                (agoraUtc - r.Entrada.Value).TotalHours >= 8
                     ? "Atenção"
                     : "Em expediente"
-            })
-            .OrderByDescending(r => r.minutosEmExpediente)
+            ))
+            .OrderByDescending(r => r.MinutosEmExpediente)
             .ToList();
 
-        return Ok(new
-        {
-            data = hoje.ToString("dd/MM/yyyy"),
-            atualizadoEm = agoraLocal.ToString("HH:mm"),
-            bolsistasAtivos = bolsistasAtivos.Count,
+        return Ok(new ResumoDiaResponse(
+            hoje.ToString("dd/MM/yyyy"),
+            agoraLocal.ToString("HH:mm"),
+            bolsistasAtivos.Count,
             presentesHoje,
             trabalhandoAgora,
             pendenciasSaida,
             semPontoHoje,
             equipeEmExpediente
-        });
+        ));
     }
 
     [Authorize(Roles = "Supervisor")]
