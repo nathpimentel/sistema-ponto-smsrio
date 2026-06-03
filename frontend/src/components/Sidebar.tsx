@@ -19,7 +19,7 @@ interface SidebarLink {
   end?: boolean;
 }
 
-const links: SidebarLink[] = [
+const supervisorLinks: SidebarLink[] = [
   { to: "/dashboard", label: "Visão Geral", icon: GoHome, end: true },
   { to: "/registros", label: "Registros", icon: GoClock },
   { to: "/relatorios", label: "Relatórios", icon: GoFile },
@@ -27,9 +27,19 @@ const links: SidebarLink[] = [
   { to: "/perfil", label: "Perfil", icon: GoPerson }
 ];
 
-export default function Sidebar() {
+const bolsistaLinks: SidebarLink[] = [
+  { to: "/bolsista", label: "Meu Painel", icon: GoHome, end: true },
+  { to: "/bolsista/perfil", label: "Perfil", icon: GoPerson }
+];
+
+interface Props {
+  tipo?: "Supervisor" | "Bolsista";
+}
+
+export default function Sidebar({ tipo = "Supervisor" }: Props) {
   const navigate = useNavigate();
-  const nome = localStorage.getItem("nome") || "Supervisor";
+  const nome = localStorage.getItem("nome") || tipo;
+  const links = tipo === "Bolsista" ? bolsistaLinks : supervisorLinks;
 
   function logout() {
     localStorage.clear();
@@ -51,8 +61,10 @@ export default function Sidebar() {
         <div style={{ minWidth: 0 }}>
           <p className="sidebar-username">{nome}</p>
           <p className="sidebar-role">
-            <GoShieldCheck aria-hidden="true" />
-            Supervisor
+            {tipo === "Supervisor"
+              ? <GoShieldCheck aria-hidden="true" />
+              : <GoPerson aria-hidden="true" />}
+            {tipo}
           </p>
         </div>
       </div>

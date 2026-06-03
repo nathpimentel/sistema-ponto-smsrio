@@ -12,7 +12,7 @@ import {
 } from "react-icons/go";
 import { Link } from "react-router-dom";
 
-import SidebarBolsista from "../components/SidebarBolsista";
+import Sidebar from "../components/Sidebar";
 import api from "../services/api";
 import { formatarDuracao, formatarHorario } from "../utils/formatarHoras";
 
@@ -127,7 +127,7 @@ export default function DashboardBolsista() {
 
   return (
     <div className="app-shell">
-      <SidebarBolsista />
+      <Sidebar tipo="Bolsista" />
 
       <main className="app-main">
         <div className="page-heading">

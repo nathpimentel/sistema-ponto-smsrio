@@ -5,7 +5,6 @@ import { GoKey } from "react-icons/go";
 import { useNavigate } from "react-router-dom";
 
 import Sidebar from "../components/Sidebar";
-import SidebarBolsista from "../components/SidebarBolsista";
 import api from "../services/api";
 
 export default function AlterarSenha() {
@@ -61,9 +60,7 @@ export default function AlterarSenha() {
 
   return (
     <div className="app-shell">
-      {tipoUsuario === "Bolsista"
-        ? <SidebarBolsista />
-        : <Sidebar />}
+      <Sidebar tipo={tipoUsuario === "Bolsista" ? "Bolsista" : "Supervisor"} />
 
       <main className="app-main">
         <div className="page-heading">

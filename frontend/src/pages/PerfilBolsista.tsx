@@ -17,7 +17,6 @@ import {
 } from "react-icons/go";
 
 import Sidebar from "../components/Sidebar";
-import SidebarBolsista from "../components/SidebarBolsista";
 import api from "../services/api";
 
 interface Perfil {
@@ -207,7 +206,7 @@ export default function PerfilBolsista() {
 
   return (
     <div className="app-shell">
-      {isBolsista ? <SidebarBolsista /> : <Sidebar />}
+      <Sidebar tipo={isBolsista ? "Bolsista" : "Supervisor"} />
 
       <main className="app-main">
         <div className="page-heading">
