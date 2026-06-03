@@ -92,10 +92,10 @@ export default function DashboardBolsista() {
     carregarHistorico();
     carregarResumo();
 
-    const interval = setInterval(() => {
-      carregarHistorico();
-      carregarResumo();
-    }, 10000);
+    // Cronometro ja calcula localmente a partir de inicioExpediente;
+    // nao precisa de polling curto. Recarrega o resumo a cada 60s
+    // apenas para detectar mudancas externas (ex: bolsista desaprovado).
+    const interval = setInterval(carregarResumo, 60_000);
 
     return () => clearInterval(interval);
   }, []);

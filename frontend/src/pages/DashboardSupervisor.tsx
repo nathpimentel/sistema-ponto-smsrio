@@ -76,7 +76,7 @@ export default function DashboardSupervisor() {
     const interval = setInterval(() => {
       carregarBolsistas();
       carregarAtivos();
-    }, 10000);
+    }, 60_000);
 
     return () => clearInterval(interval);
   }, []);
