@@ -67,7 +67,7 @@ public class PontoController : ControllerBase
         var emailNormalizado = email.Trim().ToLowerInvariant();
 
         return _context.Users
-            .FirstOrDefault(u => u.Email.ToLower() == emailNormalizado);
+            .FirstOrDefault(u => u.Email == emailNormalizado);
     }
 
     [Authorize]

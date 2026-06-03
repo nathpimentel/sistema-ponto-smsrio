@@ -107,7 +107,7 @@ private User? ObterUsuarioLogado()
     var emailNormalizado = email.Trim().ToLowerInvariant();
 
     return _context.Users
-        .FirstOrDefault(u => u.Email.ToLower() == emailNormalizado);
+        .FirstOrDefault(u => u.Email == emailNormalizado);
 }
 
 [Authorize(Roles = "Supervisor")]
@@ -159,7 +159,7 @@ public IActionResult Register(RegisterDto dto)
     }
 
     var emailExiste = _context.Users
-        .Any(u => u.Email.ToLower() == email);
+        .Any(u => u.Email == email);
 
     if (emailExiste)
     {
@@ -301,7 +301,7 @@ public IActionResult Register(RegisterDto dto)
     {
         var email = dto.Email.Trim().ToLowerInvariant();
 
-        var user = _context.Users.FirstOrDefault(u => u.Email.ToLower() == email);
+        var user = _context.Users.FirstOrDefault(u => u.Email == email);
 
         if (user == null)
         {
@@ -402,7 +402,7 @@ public IActionResult Register(RegisterDto dto)
 
         var tiposPermitidos = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
 
-        if (!tiposPermitidos.Contains(foto.ContentType.ToLower()))
+        if (!tiposPermitidos.Contains(foto.ContentType, StringComparer.OrdinalIgnoreCase))
         {
             return BadRequest("Formato inválido. Use JPEG, PNG, GIF ou WebP");
         }
@@ -451,7 +451,7 @@ public IActionResult Register(RegisterDto dto)
         var emailExiste = _context.Users
             .Any(u =>
                 u.Id != user.Id &&
-                u.Email.ToLower() == email
+                u.Email == email
             );
 
         if (emailExiste)

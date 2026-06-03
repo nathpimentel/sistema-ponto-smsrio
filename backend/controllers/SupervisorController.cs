@@ -120,8 +120,8 @@ public class SupervisorController : ControllerBase
             var termoBusca = busca.Trim().ToLower();
 
             query = query.Where(r =>
-                r.User.Nome.ToLower().Contains(termoBusca) ||
-                r.User.Email.ToLower().Contains(termoBusca)
+                EF.Functions.ILike(r.User.Nome, "%" + termoBusca + "%") ||
+                r.User.Email.Contains(termoBusca)
             );
         }
 
@@ -229,8 +229,8 @@ public class SupervisorController : ControllerBase
                 .Where(u =>
                     u.TipoUsuario == "Bolsista" &&
                     (
-                        u.Email.ToLower() == termoBusca ||
-                        u.Nome.ToLower().Contains(termoBusca)
+                        u.Email == termoBusca ||
+                        EF.Functions.ILike(u.Nome, "%" + termoBusca + "%")
                     )
                 )
                 .Select(u => new { u.Id, u.Nome, u.Email })
