@@ -46,6 +46,9 @@ namespace backend.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("UserId", "Data")
+                        .HasDatabaseName("IX_RegistrosPonto_UserId_Data");
+
                     b.ToTable("RegistrosPonto");
                 });
 

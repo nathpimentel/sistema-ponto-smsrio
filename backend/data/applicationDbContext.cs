@@ -26,5 +26,11 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(u => u.Email)
                 .IsUnique();
         });
+
+        modelBuilder.Entity<RegistroPonto>(entity =>
+        {
+            entity.HasIndex(r => new { r.UserId, r.Data })
+                .HasDatabaseName("IX_RegistrosPonto_UserId_Data");
+        });
     }
 }
