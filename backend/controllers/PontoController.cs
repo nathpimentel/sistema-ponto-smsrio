@@ -107,7 +107,6 @@ public class PontoController : ControllerBase
         var registro = new RegistroPonto
         {
             UserId = user.Id,
-            Data = hoje,
             Entrada = DateTime.UtcNow
         };
 
@@ -153,7 +152,9 @@ public class PontoController : ControllerBase
                 r.Saida == null
             );
 
-        if (registroPendente != null && registroPendente.Data.Date != hoje)
+        if (registroPendente != null &&
+            registroPendente.Entrada.HasValue &&
+            registroPendente.Entrada.Value.Date != hoje)
         {
             return BadRequest(
                 "Existe uma entrada pendente de outro dia. Procure o supervisor"
@@ -209,11 +210,13 @@ public class PontoController : ControllerBase
 
         var registros = _context.RegistrosPonto
             .Where(r => r.UserId == user.Id)
-            .OrderByDescending(r => r.Data)
+            .OrderByDescending(r => r.Entrada)
             .ToList()
             .Select(r => new
             {
-                data = r.Data.ToString("dd/MM/yyyy"),
+                data = r.Entrada.HasValue
+                    ? ParaHorarioRio(r.Entrada.Value).ToString("dd/MM/yyyy")
+                    : "",
 
                 entrada = r.Entrada != null
                     ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
@@ -250,8 +253,9 @@ public class PontoController : ControllerBase
         var registros = _context.RegistrosPonto
             .Where(r =>
                 r.UserId == user.Id &&
-                r.Data.Month == hoje.Month &&
-                r.Data.Year == hoje.Year
+                r.Entrada.HasValue &&
+                r.Entrada.Value.Month == hoje.Month &&
+                r.Entrada.Value.Year == hoje.Year
             )
             .ToList();
 
@@ -271,8 +275,8 @@ public class PontoController : ControllerBase
 
         var registroAberto =
             registros.FirstOrDefault(r =>
-                r.Data.Date == hoje.Date &&
-                r.Entrada != null &&
+                r.Entrada.HasValue &&
+                r.Entrada.Value.Date == hoje.Date &&
                 r.Saida == null
             );
 

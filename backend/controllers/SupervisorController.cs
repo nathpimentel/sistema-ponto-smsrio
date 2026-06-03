@@ -108,12 +108,12 @@ public class SupervisorController : ControllerBase
 
         if (ano.HasValue)
         {
-            query = query.Where(r => r.Data.Year == ano.Value);
+            query = query.Where(r => r.Entrada.HasValue && r.Entrada.Value.Year == ano.Value);
         }
 
         if (mes.HasValue)
         {
-            query = query.Where(r => r.Data.Month == mes.Value);
+            query = query.Where(r => r.Entrada.HasValue && r.Entrada.Value.Month == mes.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(busca))
@@ -128,7 +128,7 @@ public class SupervisorController : ControllerBase
 
         var registros = query
             .OrderBy(r => r.User.Nome)
-            .ThenBy(r => r.Data)
+            .ThenBy(r => r.Entrada)
             .ToList()
             .Select(r => new
             {
@@ -144,7 +144,9 @@ public class SupervisorController : ControllerBase
 
                 cargaHorariaSemanal = r.User.CargaHorariaSemanal,
 
-                data = r.Data.ToString("dd/MM/yyyy"),
+                data = r.Entrada.HasValue
+                    ? ParaHorarioRio(r.Entrada.Value).ToString("dd/MM/yyyy")
+                    : "",
 
                 entrada = r.Entrada != null
                     ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
@@ -258,10 +260,11 @@ public class SupervisorController : ControllerBase
             var registros = _context.RegistrosPonto
                 .Where(r =>
                     r.UserId == user.Id &&
-                    r.Data.Month == mes &&
-                    r.Data.Year == ano
+                    r.Entrada.HasValue &&
+                    r.Entrada.Value.Month == mes &&
+                    r.Entrada.Value.Year == ano
                 )
-                .OrderBy(r => r.Data)
+                .OrderBy(r => r.Entrada)
                 .ToList();
 
             dadosRelatorio = registros.Select(r =>
@@ -274,7 +277,9 @@ public class SupervisorController : ControllerBase
                 {
                     nome = user.Nome,
 
-                    data = r.Data.ToString("dd/MM/yyyy"),
+                    data = r.Entrada.HasValue
+                        ? ParaHorarioRio(r.Entrada.Value).ToString("dd/MM/yyyy")
+                        : "",
 
                     entrada = r.Entrada != null
                         ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
@@ -322,13 +327,14 @@ public class SupervisorController : ControllerBase
 
             var registros = _context.RegistrosPonto
                 .Where(r =>
-                    r.Data.Month == mes &&
-                    r.Data.Year == ano &&
+                    r.Entrada.HasValue &&
+                    r.Entrada.Value.Month == mes &&
+                    r.Entrada.Value.Year == ano &&
                     r.User != null &&
                     r.User.TipoUsuario == "Bolsista"
                 )
                 .OrderBy(r => r.UserId)
-                .ThenBy(r => r.Data)
+                .ThenBy(r => r.Entrada)
                 .ToList();
 
             dadosRelatorio = registros.Select(r =>
@@ -341,7 +347,9 @@ public class SupervisorController : ControllerBase
                 {
                     nome = r.User.Nome,
 
-                    data = r.Data.ToString("dd/MM/yyyy"),
+                    data = r.Entrada.HasValue
+                        ? ParaHorarioRio(r.Entrada.Value).ToString("dd/MM/yyyy")
+                        : "",
 
                     entrada = r.Entrada != null
                         ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
@@ -400,7 +408,7 @@ public class SupervisorController : ControllerBase
     {
         var ativos = _context.RegistrosPonto
             .Where(r =>
-                r.Data.Date == HojeUtc &&
+                r.Entrada.HasValue && r.Entrada.Value.Date == HojeUtc &&
                 r.Entrada != null &&
                 r.Saida == null
             )
@@ -413,7 +421,7 @@ public class SupervisorController : ControllerBase
 
                 entrada = ParaHorarioRio(r.Entrada!.Value).ToString("HH:mm"),
 
-                data = r.Data.ToString("dd/MM/yyyy")
+                data = ParaHorarioRio(r.Entrada!.Value).ToString("dd/MM/yyyy")
             })
             .ToList();
 
@@ -437,7 +445,7 @@ public class SupervisorController : ControllerBase
             .ToList();
 
         var registrosHoje = _context.RegistrosPonto
-            .Where(r => r.Data.Date == hoje)
+            .Where(r => r.Entrada.HasValue && r.Entrada.Value.Date == hoje)
             .ToList();
 
         var presentesHoje = registrosHoje
@@ -451,7 +459,7 @@ public class SupervisorController : ControllerBase
 
         var pendenciasSaida = _context.RegistrosPonto
             .Count(r =>
-                r.Data.Date < hoje &&
+                r.Entrada.HasValue && r.Entrada.Value.Date < hoje &&
                 r.Entrada != null &&
                 r.Saida == null
             );
@@ -467,8 +475,7 @@ public class SupervisorController : ControllerBase
 
         var equipeEmExpediente = _context.RegistrosPonto
             .Where(r =>
-                r.Data.Date == hoje &&
-                r.Entrada != null &&
+                r.Entrada.HasValue && r.Entrada.Value.Date == hoje &&
                 r.Saida == null
             )
             .Select(r => new
@@ -541,9 +548,18 @@ public class SupervisorController : ControllerBase
             return BadRequest("Informe ao menos um campo para ajuste");
         }
 
-        if (dto.Data.HasValue)
+        if (dto.Data.HasValue && registro.Entrada.HasValue)
         {
-            registro.Data = NormalizarUtc(dto.Data.Value).Date;
+            // Ajusta apenas a parte de data mantendo o horario original de Entrada
+            var novaData = NormalizarUtc(dto.Data.Value).Date;
+            var horarioEntrada = registro.Entrada.Value.TimeOfDay;
+            registro.Entrada = novaData + horarioEntrada;
+
+            if (registro.Saida.HasValue)
+            {
+                var horarioSaida = registro.Saida.Value.TimeOfDay;
+                registro.Saida = novaData + horarioSaida;
+            }
         }
 
         if (dto.Entrada.HasValue)
@@ -596,10 +612,11 @@ public class SupervisorController : ControllerBase
         var registros = _context.RegistrosPonto
             .Where(r =>
                 r.UserId == userId &&
-                r.Data.Month == mes &&
-                r.Data.Year == ano
+                r.Entrada.HasValue &&
+                r.Entrada.Value.Month == mes &&
+                r.Entrada.Value.Year == ano
             )
-            .OrderBy(r => r.Data)
+            .OrderBy(r => r.Entrada)
             .ToList();
 
         var relatorio = registros.Select(r =>
@@ -613,7 +630,9 @@ public class SupervisorController : ControllerBase
 
             return new
             {
-                data = r.Data.ToString("dd/MM/yyyy"),
+                data = r.Entrada.HasValue
+                    ? ParaHorarioRio(r.Entrada.Value).ToString("dd/MM/yyyy")
+                    : "",
 
                 entrada = r.Entrada != null
                     ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")

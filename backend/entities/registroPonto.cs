@@ -23,8 +23,6 @@ public class RegistroPonto
 
     public User User { get; set; } = null!;
 
-    public DateTime Data { get; set; }
-
     public DateTime? Entrada { get; set; }
 
     public DateTime? Saida { get; set; }

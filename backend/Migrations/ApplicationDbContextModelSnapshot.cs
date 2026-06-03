@@ -36,9 +36,6 @@ namespace backend.Migrations
                     b.Property<DateTime>("CriadoEm")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime>("Data")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTime?>("Entrada")
                         .HasColumnType("timestamp with time zone");
 
