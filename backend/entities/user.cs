@@ -35,4 +35,8 @@ public class User
     public bool Ativo { get; set; } = true;
 
     public string? FotoBase64 { get; set; }
+
+    public DateTime CriadoEm { get; set; }
+
+    public DateTime AtualizadoEm { get; set; }
 }
