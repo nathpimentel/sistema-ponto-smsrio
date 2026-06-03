@@ -3,6 +3,7 @@ using backend.data;
 using backend.dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace backend.controllers;
 
@@ -65,9 +66,9 @@ public class SupervisorController : ControllerBase
 
     [Authorize(Roles = "Supervisor")]
     [HttpGet("usuarios")]
-    public IActionResult Usuarios()
+    public async Task<IActionResult> Usuarios(CancellationToken cancellationToken = default)
     {
-        var usuarios = _context.Users
+        var usuarios = await _context.Users
             .Select(u => new
             {
                 u.Id,
@@ -80,17 +81,18 @@ public class SupervisorController : ControllerBase
                 u.Aprovado,
                 u.FotoBase64
             })
-            .ToList();
+            .ToListAsync(cancellationToken);
 
         return Ok(usuarios);
     }
 
     [Authorize(Roles = "Supervisor")]
     [HttpGet("registros")]
-    public IActionResult BuscarTodosRegistros(
+    public async Task<IActionResult> BuscarTodosRegistros(
         int? mes,
         int? ano,
-        string? busca
+        string? busca,
+        CancellationToken cancellationToken = default
     )
     {
         if (mes.HasValue && (mes.Value < 1 || mes.Value > 12))
@@ -125,10 +127,10 @@ public class SupervisorController : ControllerBase
             );
         }
 
-        var registros = query
+        var registros = (await query
             .OrderBy(r => r.User.Nome)
             .ThenBy(r => r.Data)
-            .ToList()
+            .ToListAsync(cancellationToken))
             .Select(r => new
             {
                 id = r.Id,
@@ -165,10 +167,10 @@ public class SupervisorController : ControllerBase
 
     [Authorize(Roles = "Supervisor")]
     [HttpPut("aprovar/{id}")]
-    public IActionResult AprovarUsuario(int id)
+    public async Task<IActionResult> AprovarUsuario(int id, CancellationToken cancellationToken = default)
     {
-        var user = _context.Users
-            .FirstOrDefault(u => u.Id == id);
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
 
         if (user == null)
         {
@@ -177,16 +179,16 @@ public class SupervisorController : ControllerBase
 
         user.Aprovado = true;
 
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Ok();
     }
 
     [Authorize(Roles = "Supervisor")]
     [HttpGet("pendentes")]
-    public IActionResult UsuariosPendentes()
+    public async Task<IActionResult> UsuariosPendentes(CancellationToken cancellationToken = default)
     {
-        var usuarios = _context.Users
+        var usuarios = await _context.Users
             .Where(u =>
                 !u.Aprovado &&
                 u.TipoUsuario == "Bolsista"
@@ -197,17 +199,18 @@ public class SupervisorController : ControllerBase
                 u.Nome,
                 u.Email
             })
-            .ToList();
+            .ToListAsync(cancellationToken);
 
         return Ok(usuarios);
     }
 
     [Authorize(Roles = "Supervisor")]
     [HttpGet("relatorio-pdf")]
-    public IActionResult GerarRelatorioPdf(
+    public async Task<IActionResult> GerarRelatorioPdf(
         string? busca = "",
         int mes = 0,
-        int ano = 0
+        int ano = 0,
+        CancellationToken cancellationToken = default
     )
     {
         if (mes < 1 || mes > 12 || ano < 1)
@@ -215,7 +218,7 @@ public class SupervisorController : ControllerBase
             return BadRequest("Informe mês e ano válidos");
         }
 
-        List<dynamic> dadosRelatorio;
+        List<RelatorioPontoLinhaDto> dadosRelatorio;
 
         string nomeRelatorio;
 
@@ -225,7 +228,7 @@ public class SupervisorController : ControllerBase
 
             var termoBusca = busca.Trim().ToLower();
 
-            var candidatos = _context.Users
+            var candidatos = await _context.Users
                 .Where(u =>
                     u.TipoUsuario == "Bolsista" &&
                     (
@@ -234,7 +237,7 @@ public class SupervisorController : ControllerBase
                     )
                 )
                 .Select(u => new { u.Id, u.Nome, u.Email })
-                .ToList();
+                .ToListAsync(cancellationToken);
 
             if (!candidatos.Any())
             {
@@ -254,14 +257,14 @@ public class SupervisorController : ControllerBase
 
             nomeRelatorio = user.Nome;
 
-            var registros = _context.RegistrosPonto
+            var registros = await _context.RegistrosPonto
                 .Where(r =>
                     r.UserId == user.Id &&
                     r.Data.Month == mes &&
                     r.Data.Year == ano
                 )
                 .OrderBy(r => r.Data)
-                .ToList();
+                .ToListAsync(cancellationToken);
 
             dadosRelatorio = registros.Select(r =>
             {
@@ -269,28 +272,22 @@ public class SupervisorController : ControllerBase
                     ? r.Saida.Value - r.Entrada!.Value
                     : TimeSpan.Zero;
 
-                return new
-                {
-                    nome = user.Nome,
-
-                    data = r.Data.ToString("dd/MM/yyyy"),
-
-                    entrada = r.Entrada != null
+                return new RelatorioPontoLinhaDto(
+                    Nome: user.Nome,
+                    Data: r.Data.ToString("dd/MM/yyyy"),
+                    Entrada: r.Entrada != null
                         ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
                         : "",
-
-                    saida = r.Saida != null
+                    Saida: r.Saida != null
                         ? ParaHorarioRio(r.Saida.Value).ToString("HH:mm")
                         : "",
-
-                    horasTrabalhadas = FormatarDuracao(tempo),
-
-                    minutosTotais = tempo.TotalMinutes
-                };
-            }).ToList<dynamic>();
+                    HorasTrabalhadas: FormatarDuracao(tempo),
+                    MinutosTotais: tempo.TotalMinutes
+                );
+            }).ToList();
 
             var totalMinutos =
-                dadosRelatorio.Sum(r => (double)r.minutosTotais);
+                dadosRelatorio.Sum(r => r.MinutosTotais);
 
             var horas = (int)totalMinutos / 60;
 
@@ -319,7 +316,7 @@ public class SupervisorController : ControllerBase
 
             nomeRelatorio = "Todos os Bolsistas";
 
-            var registros = _context.RegistrosPonto
+            var registros = await _context.RegistrosPonto
                 .Where(r =>
                     r.Data.Month == mes &&
                     r.Data.Year == ano &&
@@ -328,7 +325,7 @@ public class SupervisorController : ControllerBase
                 )
                 .OrderBy(r => r.UserId)
                 .ThenBy(r => r.Data)
-                .ToList();
+                .ToListAsync(cancellationToken);
 
             dadosRelatorio = registros.Select(r =>
             {
@@ -336,25 +333,19 @@ public class SupervisorController : ControllerBase
                     ? r.Saida.Value - r.Entrada!.Value
                     : TimeSpan.Zero;
 
-                return new
-                {
-                    nome = r.User.Nome,
-
-                    data = r.Data.ToString("dd/MM/yyyy"),
-
-                    entrada = r.Entrada != null
+                return new RelatorioPontoLinhaDto(
+                    Nome: r.User.Nome,
+                    Data: r.Data.ToString("dd/MM/yyyy"),
+                    Entrada: r.Entrada != null
                         ? ParaHorarioRio(r.Entrada.Value).ToString("HH:mm")
                         : "",
-
-                    saida = r.Saida != null
+                    Saida: r.Saida != null
                         ? ParaHorarioRio(r.Saida.Value).ToString("HH:mm")
                         : "",
-
-                    horasTrabalhadas = FormatarDuracao(tempo),
-
-                    minutosTotais = tempo.TotalMinutes
-                };
-            }).ToList<dynamic>();
+                    HorasTrabalhadas: FormatarDuracao(tempo),
+                    MinutosTotais: tempo.TotalMinutes
+                );
+            }).ToList();
 
             var pdf = _pdfService.GerarRelatorio(
                 nomeRelatorio,
@@ -375,9 +366,9 @@ public class SupervisorController : ControllerBase
 
     [Authorize(Roles = "Supervisor")]
     [HttpGet("bolsistas")]
-    public IActionResult ListarBolsistas()
+    public async Task<IActionResult> ListarBolsistas(CancellationToken cancellationToken = default)
     {
-        var bolsistas = _context.Users
+        var bolsistas = await _context.Users
             .Where(u => u.TipoUsuario == "Bolsista")
             .Select(u => new
             {
@@ -388,22 +379,22 @@ public class SupervisorController : ControllerBase
                 unidade = u.Unidade,
                 cargaHorariaSemanal = u.CargaHorariaSemanal
             })
-            .ToList();
+            .ToListAsync(cancellationToken);
 
         return Ok(bolsistas);
     }
 
     [Authorize(Roles = "Supervisor")]
     [HttpGet("ativos")]
-    public IActionResult UsuariosAtivos()
+    public async Task<IActionResult> UsuariosAtivos(CancellationToken cancellationToken = default)
     {
-        var ativos = _context.RegistrosPonto
+        var ativos = (await _context.RegistrosPonto
             .Where(r =>
                 r.Data.Date == HojeUtc &&
                 r.Entrada != null &&
                 r.Saida == null
             )
-            .ToList()
+            .ToListAsync(cancellationToken))
             .Select(r => new
             {
                 nome = r.User.Nome,
@@ -421,22 +412,22 @@ public class SupervisorController : ControllerBase
 
     [Authorize(Roles = "Supervisor")]
     [HttpGet("resumo-dia")]
-    public IActionResult ResumoDia()
+    public async Task<IActionResult> ResumoDia(CancellationToken cancellationToken = default)
     {
         var hoje = HojeUtc;
         var agoraUtc = DateTime.UtcNow;
         var agoraLocal = ParaHorarioRio(agoraUtc);
 
-        var bolsistasAtivos = _context.Users
+        var bolsistasAtivos = await _context.Users
             .Where(u =>
                 u.TipoUsuario == "Bolsista" &&
                 u.Aprovado
             )
-            .ToList();
+            .ToListAsync(cancellationToken);
 
-        var registrosHoje = _context.RegistrosPonto
+        var registrosHoje = await _context.RegistrosPonto
             .Where(r => r.Data.Date == hoje)
-            .ToList();
+            .ToListAsync(cancellationToken);
 
         var presentesHoje = registrosHoje
             .Where(r => r.Entrada != null)
@@ -447,11 +438,12 @@ public class SupervisorController : ControllerBase
         var trabalhandoAgora = registrosHoje
             .Count(r => r.Entrada != null && r.Saida == null);
 
-        var pendenciasSaida = _context.RegistrosPonto
-            .Count(r =>
+        var pendenciasSaida = await _context.RegistrosPonto
+            .CountAsync(r =>
                 r.Data.Date < hoje &&
                 r.Entrada != null &&
-                r.Saida == null
+                r.Saida == null,
+                cancellationToken
             );
 
         var usuariosComPontoHoje = registrosHoje
@@ -463,7 +455,7 @@ public class SupervisorController : ControllerBase
         var semPontoHoje = bolsistasAtivos
             .Count(u => !usuariosComPontoHoje.Contains(u.Id));
 
-        var equipeEmExpediente = _context.RegistrosPonto
+        var equipeEmExpediente = (await _context.RegistrosPonto
             .Where(r =>
                 r.Data.Date == hoje &&
                 r.Entrada != null &&
@@ -475,7 +467,7 @@ public class SupervisorController : ControllerBase
                 r.User.Email,
                 r.Entrada
             })
-            .ToList()
+            .ToListAsync(cancellationToken))
             .Select(r => new
             {
                 nome = r.Nome,
@@ -505,10 +497,10 @@ public class SupervisorController : ControllerBase
 
     [Authorize(Roles = "Supervisor")]
     [HttpPut("desativar/{id}")]
-    public IActionResult DesativarUsuario(int id)
+    public async Task<IActionResult> DesativarUsuario(int id, CancellationToken cancellationToken = default)
     {
-        var user = _context.Users
-            .FirstOrDefault(u => u.Id == id);
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
 
         if (user == null)
         {
@@ -517,17 +509,17 @@ public class SupervisorController : ControllerBase
 
         user.Aprovado = false;
 
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Ok();
     }
 
     [Authorize(Roles = "Supervisor")]
     [HttpPut("registros/{id}/ajustar")]
-    public IActionResult AjustarRegistro(int id, AjustarRegistroPontoDto dto)
+    public async Task<IActionResult> AjustarRegistro(int id, AjustarRegistroPontoDto dto, CancellationToken cancellationToken = default)
     {
-        var registro = _context.RegistrosPonto
-            .FirstOrDefault(r => r.Id == id);
+        var registro = await _context.RegistrosPonto
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
         if (registro == null)
         {
@@ -563,7 +555,7 @@ public class SupervisorController : ControllerBase
             return BadRequest("A saída não pode ser anterior à entrada");
         }
 
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Ok(new
         {
@@ -573,25 +565,25 @@ public class SupervisorController : ControllerBase
 
     [Authorize(Roles = "Supervisor")]
     [HttpDelete("excluir/{id}")]
-    public IActionResult ExcluirUsuario(int id)
+    public async Task<IActionResult> ExcluirUsuario(int id, CancellationToken cancellationToken = default)
     {
-        var user = _context.Users
-            .FirstOrDefault(u => u.Id == id);
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
 
         if (user == null)
         {
             return NotFound();
         }
 
-        var registros = _context.RegistrosPonto
+        var registros = await _context.RegistrosPonto
             .Where(r => r.UserId == id)
-            .ToList();
+            .ToListAsync(cancellationToken);
 
         _context.RegistrosPonto.RemoveRange(registros);
 
         _context.Users.Remove(user);
 
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Ok(new
         {
@@ -601,27 +593,28 @@ public class SupervisorController : ControllerBase
 
     [Authorize(Roles = "Supervisor")]
     [HttpGet("relatorio-mensal/{userId}")]
-    public IActionResult RelatorioMensal(
+    public async Task<IActionResult> RelatorioMensal(
         int userId,
         int mes,
-        int ano
+        int ano,
+        CancellationToken cancellationToken = default
     )
     {
-        var user = _context.Users.FirstOrDefault(u => u.Id == userId);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null)
         {
             return NotFound("Usuário não encontrado");
         }
 
-        var registros = _context.RegistrosPonto
+        var registros = await _context.RegistrosPonto
             .Where(r =>
                 r.UserId == userId &&
                 r.Data.Month == mes &&
                 r.Data.Year == ano
             )
             .OrderBy(r => r.Data)
-            .ToList();
+            .ToListAsync(cancellationToken);
 
         var relatorio = registros.Select(r =>
         {

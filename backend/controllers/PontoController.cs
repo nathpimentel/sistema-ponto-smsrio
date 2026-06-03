@@ -2,6 +2,7 @@ using backend.data;
 using backend.entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace backend.controllers;
@@ -48,13 +49,13 @@ public class PontoController : ControllerBase
         return $"{totalMinutos / 60:D2}:{totalMinutos % 60:D2}";
     }
 
-    private User? ObterUsuarioLogado()
+    private async Task<User?> ObterUsuarioLogadoAsync(CancellationToken ct)
     {
         var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (int.TryParse(idClaim, out var userId))
         {
-            return _context.Users.FirstOrDefault(u => u.Id == userId);
+            return await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         }
 
         var email = User.FindFirst(ClaimTypes.Email)?.Value;
@@ -66,15 +67,15 @@ public class PontoController : ControllerBase
 
         var emailNormalizado = email.Trim().ToLowerInvariant();
 
-        return _context.Users
-            .FirstOrDefault(u => u.Email.ToLower() == emailNormalizado);
+        return await _context.Users
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == emailNormalizado, ct);
     }
 
     [Authorize]
     [HttpPost("entrada")]
-    public IActionResult BaterEntrada()
+    public async Task<IActionResult> BaterEntrada(CancellationToken cancellationToken = default)
     {
-        var user = ObterUsuarioLogado();
+        var user = await ObterUsuarioLogadoAsync(cancellationToken);
 
         if (user == null)
         {
@@ -93,10 +94,11 @@ public class PontoController : ControllerBase
 
         var hoje = HojeUtc;
 
-        var registroPendente = _context.RegistrosPonto
-            .FirstOrDefault(r =>
+        var registroPendente = await _context.RegistrosPonto
+            .FirstOrDefaultAsync(r =>
                 r.UserId == user.Id &&
-                r.Saida == null
+                r.Saida == null,
+                cancellationToken
             );
 
         if (registroPendente != null)
@@ -113,7 +115,7 @@ public class PontoController : ControllerBase
 
         _context.RegistrosPonto.Add(registro);
 
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Ok(new
         {
@@ -126,9 +128,9 @@ public class PontoController : ControllerBase
 
     [Authorize]
     [HttpPost("saida")]
-    public IActionResult BaterSaida()
+    public async Task<IActionResult> BaterSaida(CancellationToken cancellationToken = default)
     {
-        var user = ObterUsuarioLogado();
+        var user = await ObterUsuarioLogadoAsync(cancellationToken);
 
         if (user == null)
         {
@@ -147,10 +149,11 @@ public class PontoController : ControllerBase
 
         var hoje = HojeUtc;
 
-        var registroPendente = _context.RegistrosPonto
-            .FirstOrDefault(r =>
+        var registroPendente = await _context.RegistrosPonto
+            .FirstOrDefaultAsync(r =>
                 r.UserId == user.Id &&
-                r.Saida == null
+                r.Saida == null,
+                cancellationToken
             );
 
         if (registroPendente != null && registroPendente.Data.Date != hoje)
@@ -176,7 +179,7 @@ public class PontoController : ControllerBase
 
         registro.Saida = DateTime.UtcNow;
 
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Ok(new
         {
@@ -198,19 +201,19 @@ public class PontoController : ControllerBase
 
     [Authorize]
     [HttpGet("meus-registros")]
-    public IActionResult MeusRegistros()
+    public async Task<IActionResult> MeusRegistros(CancellationToken cancellationToken = default)
     {
-        var user = ObterUsuarioLogado();
+        var user = await ObterUsuarioLogadoAsync(cancellationToken);
 
         if (user == null)
         {
             return Unauthorized();
         }
 
-        var registros = _context.RegistrosPonto
+        var registros = (await _context.RegistrosPonto
             .Where(r => r.UserId == user.Id)
             .OrderByDescending(r => r.Data)
-            .ToList()
+            .ToListAsync(cancellationToken))
             .Select(r => new
             {
                 data = r.Data.ToString("dd/MM/yyyy"),
@@ -236,9 +239,9 @@ public class PontoController : ControllerBase
 
     [Authorize]
     [HttpGet("resumo")]
-    public IActionResult Resumo()
+    public async Task<IActionResult> Resumo(CancellationToken cancellationToken = default)
     {
-        var user = ObterUsuarioLogado();
+        var user = await ObterUsuarioLogadoAsync(cancellationToken);
 
         if (user == null)
         {
@@ -247,13 +250,13 @@ public class PontoController : ControllerBase
 
         var hoje = HojeUtc;
 
-        var registros = _context.RegistrosPonto
+        var registros = await _context.RegistrosPonto
             .Where(r =>
                 r.UserId == user.Id &&
                 r.Data.Month == hoje.Month &&
                 r.Data.Year == hoje.Year
             )
-            .ToList();
+            .ToListAsync(cancellationToken);
 
         var totalMinutos = registros
             .Where(r =>

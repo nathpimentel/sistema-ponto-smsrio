@@ -38,7 +38,7 @@ public class AuthController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
-    
+
     public AuthController(ApplicationDbContext context, IConfiguration configuration)
     {
         _context = context;
@@ -88,13 +88,13 @@ private static bool EmailValido(string email)
     }
 }
 
-private User? ObterUsuarioLogado()
+private async Task<User?> ObterUsuarioLogadoAsync(CancellationToken ct)
 {
     var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
     if (int.TryParse(idClaim, out var userId))
     {
-        return _context.Users.FirstOrDefault(u => u.Id == userId);
+        return await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
     }
 
     var email = User.FindFirst(ClaimTypes.Email)?.Value;
@@ -106,13 +106,13 @@ private User? ObterUsuarioLogado()
 
     var emailNormalizado = email.Trim().ToLowerInvariant();
 
-    return _context.Users
-        .FirstOrDefault(u => u.Email.ToLower() == emailNormalizado);
+    return await _context.Users
+        .FirstOrDefaultAsync(u => u.Email.ToLower() == emailNormalizado, ct);
 }
 
 [Authorize(Roles = "Supervisor")]
 [HttpPost("register")]
-public IActionResult Register(RegisterDto dto)
+public async Task<IActionResult> Register(RegisterDto dto, CancellationToken cancellationToken = default)
 {
     var nome = (dto.Nome ?? "").Trim();
     var email = (dto.Email ?? "").Trim().ToLowerInvariant();
@@ -158,8 +158,8 @@ public IActionResult Register(RegisterDto dto)
         );
     }
 
-    var emailExiste = _context.Users
-        .Any(u => u.Email.ToLower() == email);
+    var emailExiste = await _context.Users
+        .AnyAsync(u => u.Email.ToLower() == email, cancellationToken);
 
     if (emailExiste)
     {
@@ -191,7 +191,7 @@ public IActionResult Register(RegisterDto dto)
 
     try
     {
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(cancellationToken);
     }
     catch (DbUpdateException ex)
         when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
@@ -210,7 +210,7 @@ public IActionResult Register(RegisterDto dto)
 }
 
     [HttpGet("primeiro-acesso/validar-token")]
-    public IActionResult ValidarTokenPrimeiroAcesso([FromQuery] string token)
+    public async Task<IActionResult> ValidarTokenPrimeiroAcesso([FromQuery] string token, CancellationToken cancellationToken = default)
     {
         token = (token ?? "").Trim();
 
@@ -221,9 +221,10 @@ public IActionResult Register(RegisterDto dto)
 
         var tokenHash = GerarHashToken(token);
 
-        var user = _context.Users.FirstOrDefault(u =>
+        var user = await _context.Users.FirstOrDefaultAsync(u =>
             u.PrimeiroAcessoTokenHash == tokenHash &&
-            !u.SenhaDefinida
+            !u.SenhaDefinida,
+            cancellationToken
         );
 
         if (user == null)
@@ -247,7 +248,7 @@ public IActionResult Register(RegisterDto dto)
     }
 
     [HttpPost("primeiro-acesso/definir-senha")]
-    public IActionResult DefinirSenhaPrimeiroAcesso(PrimeiroAcessoDefinirSenhaDto dto)
+    public async Task<IActionResult> DefinirSenhaPrimeiroAcesso(PrimeiroAcessoDefinirSenhaDto dto, CancellationToken cancellationToken = default)
     {
         var token = (dto.Token ?? "").Trim();
         var novaSenha = dto.NovaSenha ?? "";
@@ -264,9 +265,10 @@ public IActionResult Register(RegisterDto dto)
 
         var tokenHash = GerarHashToken(token);
 
-        var user = _context.Users.FirstOrDefault(u =>
+        var user = await _context.Users.FirstOrDefaultAsync(u =>
             u.PrimeiroAcessoTokenHash == tokenHash &&
-            !u.SenhaDefinida
+            !u.SenhaDefinida,
+            cancellationToken
         );
 
         if (user == null)
@@ -287,7 +289,7 @@ public IActionResult Register(RegisterDto dto)
         user.PrimeiroAcessoTokenHash = null;
         user.PrimeiroAcessoTokenExpiraEm = null;
 
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Ok(new
         {
@@ -297,11 +299,11 @@ public IActionResult Register(RegisterDto dto)
 
     [EnableRateLimiting("login")]
     [HttpPost("login")]
-    public IActionResult Login(LoginDto dto)
+    public async Task<IActionResult> Login(LoginDto dto, CancellationToken cancellationToken = default)
     {
         var email = dto.Email.Trim().ToLowerInvariant();
 
-        var user = _context.Users.FirstOrDefault(u => u.Email.ToLower() == email);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email, cancellationToken);
 
         if (user == null)
         {
@@ -363,9 +365,9 @@ public IActionResult Register(RegisterDto dto)
 
     [Authorize]
     [HttpGet("perfil")]
-    public IActionResult Perfil()
+    public async Task<IActionResult> Perfil(CancellationToken cancellationToken = default)
     {
-        var user = ObterUsuarioLogado();
+        var user = await ObterUsuarioLogadoAsync(cancellationToken);
 
         if (user == null)
         {
@@ -386,9 +388,9 @@ public IActionResult Register(RegisterDto dto)
 
     [Authorize]
     [HttpPost("foto-perfil")]
-    public async Task<IActionResult> UploadFotoPerfil(IFormFile foto)
+    public async Task<IActionResult> UploadFotoPerfil(IFormFile foto, CancellationToken cancellationToken = default)
     {
-        var user = ObterUsuarioLogado();
+        var user = await ObterUsuarioLogadoAsync(cancellationToken);
 
         if (user == null)
         {
@@ -415,22 +417,22 @@ public IActionResult Register(RegisterDto dto)
         }
 
         using var ms = new MemoryStream();
-        await foto.CopyToAsync(ms);
+        await foto.CopyToAsync(ms, cancellationToken);
         var bytes = ms.ToArray();
         var base64 = Convert.ToBase64String(bytes);
         var dataUrl = $"data:{foto.ContentType};base64,{base64}";
 
         user.FotoBase64 = dataUrl;
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Ok(new { fotoBase64 = dataUrl });
     }
 
     [Authorize]
     [HttpPut("perfil")]
-    public IActionResult AtualizarPerfil(AtualizarPerfilDto dto)
+    public async Task<IActionResult> AtualizarPerfil(AtualizarPerfilDto dto, CancellationToken cancellationToken = default)
     {
-        var user = ObterUsuarioLogado();
+        var user = await ObterUsuarioLogadoAsync(cancellationToken);
 
         if (user == null)
         {
@@ -448,10 +450,11 @@ public IActionResult Register(RegisterDto dto)
             return BadRequest("Nome e email são obrigatórios");
         }
 
-        var emailExiste = _context.Users
-            .Any(u =>
+        var emailExiste = await _context.Users
+            .AnyAsync(u =>
                 u.Id != user.Id &&
-                u.Email.ToLower() == email
+                u.Email.ToLower() == email,
+                cancellationToken
             );
 
         if (emailExiste)
@@ -462,7 +465,7 @@ public IActionResult Register(RegisterDto dto)
         user.Nome = nome;
         user.Email = email;
 
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Ok(new
         {
@@ -473,9 +476,9 @@ public IActionResult Register(RegisterDto dto)
 
     [Authorize]
     [HttpPut("alterar-senha")]
-    public IActionResult AlterarSenha(AlterarSenhaDto dto)
+    public async Task<IActionResult> AlterarSenha(AlterarSenhaDto dto, CancellationToken cancellationToken = default)
     {
-        var user = ObterUsuarioLogado();
+        var user = await ObterUsuarioLogadoAsync(cancellationToken);
 
         if (user == null)
         {
@@ -510,14 +513,13 @@ public IActionResult Register(RegisterDto dto)
 
         user.SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.NovaSenha);
 
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Ok(new
         {
             mensagem = "Senha alterada com sucesso"
         });
     }
-    
-    
-}
 
+
+}
