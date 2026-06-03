@@ -1,5 +1,6 @@
 using backend.data;
 using backend.entities;
+using backend.services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,10 +13,12 @@ namespace backend.controllers;
 public class PontoController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly PontoService _pontoService;
 
-    public PontoController(ApplicationDbContext context)
+    public PontoController(ApplicationDbContext context, PontoService pontoService)
     {
         _context = context;
+        _pontoService = pontoService;
     }
 
     private static DateTime HojeUtc => DateTime.UtcNow.Date;
@@ -71,132 +74,64 @@ public class PontoController : ControllerBase
             .FirstOrDefaultAsync(u => u.Email.ToLower() == emailNormalizado, ct);
     }
 
+    private int? ObterUserIdLogado()
+    {
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idClaim, out var userId))
+        {
+            return userId;
+        }
+        return null;
+    }
+
     [Authorize]
     [HttpPost("entrada")]
     public async Task<IActionResult> BaterEntrada(CancellationToken cancellationToken = default)
     {
-        var user = await ObterUsuarioLogadoAsync(cancellationToken);
+        var userId = ObterUserIdLogado();
 
-        if (user == null)
+        if (userId == null)
         {
             return Unauthorized();
         }
 
-        if (user.TipoUsuario == "Supervisor")
+        var (sucesso, mensagem, dados) = await _pontoService.BaterEntrada(userId.Value, cancellationToken);
+
+        if (!sucesso)
         {
-            return BadRequest("Supervisor não pode bater ponto");
+            if (mensagem == "Usuário não encontrado" || mensagem == "Usuário não aprovado")
+            {
+                return mensagem == "Usuário não encontrado" ? Unauthorized() : Forbid();
+            }
+            return BadRequest(mensagem);
         }
 
-        if (!user.Aprovado)
-        {
-            return Forbid();
-        }
-
-        var hoje = HojeUtc;
-
-        var registroPendente = await _context.RegistrosPonto
-            .FirstOrDefaultAsync(r =>
-                r.UserId == user.Id &&
-                r.Saida == null,
-                cancellationToken
-            );
-
-        if (registroPendente != null)
-        {
-            return BadRequest("Existe uma entrada pendente para registrar saída");
-        }
-
-        var registro = new RegistroPonto
-        {
-            UserId = user.Id,
-            Data = hoje,
-            Entrada = DateTime.UtcNow
-        };
-
-        _context.RegistrosPonto.Add(registro);
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return Ok(new
-        {
-            mensagem = "Entrada registrada com sucesso",
-            horario = registro.Entrada.HasValue
-                ? (DateTime?)ParaHorarioRio(registro.Entrada.Value)
-                : null
-        });
+        return Ok(dados);
     }
 
     [Authorize]
     [HttpPost("saida")]
     public async Task<IActionResult> BaterSaida(CancellationToken cancellationToken = default)
     {
-        var user = await ObterUsuarioLogadoAsync(cancellationToken);
+        var userId = ObterUserIdLogado();
 
-        if (user == null)
+        if (userId == null)
         {
             return Unauthorized();
         }
 
-        if (user.TipoUsuario == "Supervisor")
+        var (sucesso, mensagem, dados) = await _pontoService.BaterSaida(userId.Value, cancellationToken);
+
+        if (!sucesso)
         {
-            return BadRequest("Supervisor não pode bater saída");
+            if (mensagem == "Usuário não encontrado" || mensagem == "Usuário não aprovado")
+            {
+                return mensagem == "Usuário não encontrado" ? Unauthorized() : Forbid();
+            }
+            return BadRequest(mensagem);
         }
 
-        if (!user.Aprovado)
-        {
-            return Forbid();
-        }
-
-        var hoje = HojeUtc;
-
-        var registroPendente = await _context.RegistrosPonto
-            .FirstOrDefaultAsync(r =>
-                r.UserId == user.Id &&
-                r.Saida == null,
-                cancellationToken
-            );
-
-        if (registroPendente != null && registroPendente.Data.Date != hoje)
-        {
-            return BadRequest(
-                "Existe uma entrada pendente de outro dia. Procure o supervisor"
-            );
-        }
-
-        var registro = registroPendente;
-
-        if (registro == null)
-        {
-            return BadRequest(
-                "Não existe entrada pendente para registrar saída"
-            );
-        }
-
-        if (registro.Saida != null)
-        {
-            return BadRequest("Saída já registrada");
-        }
-
-        registro.Saida = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return Ok(new
-        {
-            mensagem = "Saída registrada com sucesso",
-
-            entrada = registro.Entrada.HasValue
-                ? (DateTime?)ParaHorarioRio(registro.Entrada.Value)
-                : null,
-
-            saida = registro.Saida.HasValue
-                ? (DateTime?)ParaHorarioRio(registro.Saida.Value)
-                : null,
-
-            tempoTrabalhado = registro.Entrada != null && registro.Saida != null
-                ? FormatarDuracao(registro.Saida.Value - registro.Entrada.Value)
-                : null
-        });
+        return Ok(dados);
     }
 
     [Authorize]
