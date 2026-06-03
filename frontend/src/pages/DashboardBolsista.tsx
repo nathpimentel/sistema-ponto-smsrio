@@ -70,34 +70,41 @@ export default function DashboardBolsista() {
     }
   }
 
-  async function carregarHistorico() {
+  async function carregarHistorico(signal?: AbortSignal) {
     try {
-      const response = await api.get("/ponto/meus-registros");
+      const response = await api.get("/ponto/meus-registros", { signal });
       setRegistros(response.data);
-    } catch {
+    } catch (error) {
+      if (axios.isCancel(error)) return;
       toast.error("Erro ao carregar histórico");
     }
   }
 
-  async function carregarResumo() {
+  async function carregarResumo(signal?: AbortSignal) {
     try {
-      const response = await api.get("/ponto/resumo");
+      const response = await api.get("/ponto/resumo", { signal });
       setResumo(response.data);
-    } catch {
+    } catch (error) {
+      if (axios.isCancel(error)) return;
       toast.error("Erro ao carregar resumo");
     }
   }
 
   useEffect(() => {
-    carregarHistorico();
-    carregarResumo();
+    const controller = new AbortController();
 
-    // Cronometro ja calcula localmente a partir de inicioExpediente;
-    // nao precisa de polling curto. Recarrega o resumo a cada 60s
-    // apenas para detectar mudancas externas (ex: bolsista desaprovado).
-    const interval = setInterval(carregarResumo, 60_000);
+    carregarHistorico(controller.signal);
+    carregarResumo(controller.signal);
 
-    return () => clearInterval(interval);
+    const interval = setInterval(
+      () => carregarResumo(controller.signal),
+      60_000
+    );
+
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {

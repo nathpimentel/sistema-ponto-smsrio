@@ -11,6 +11,7 @@ import {
   GoXCircle
 } from "react-icons/go";
 
+import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
 import { formatarDuracao, formatarHorario } from "../utils/formatarHoras";
@@ -119,33 +120,37 @@ export default function Registros() {
   const [pastasAbertas, setPastasAbertas] = useState<Record<string, boolean>>({});
   const [filtrosPastas, setFiltrosPastas] = useState<Record<string, FiltrosPasta>>({});
 
-  async function carregarRegistros() {
+  async function carregarRegistros(signal?: AbortSignal) {
     try {
-      const response = await api.get("/supervisor/registros");
+      const response = await api.get("/supervisor/registros", { signal });
       setRegistros(response.data);
-    } catch {
+    } catch (error) {
+      if (axios.isCancel(error)) return;
       toast.error("Erro ao carregar registros");
     }
   }
 
-  async function carregarBolsistas() {
+  async function carregarBolsistas(signal?: AbortSignal) {
     try {
-      const response = await api.get("/supervisor/bolsistas");
+      const response = await api.get("/supervisor/bolsistas", { signal });
       setBolsistas(response.data);
-    } catch {
+    } catch (error) {
+      if (axios.isCancel(error)) return;
       toast.error("Erro ao carregar bolsistas");
     }
   }
 
-  async function atualizarDados() {
+  async function atualizarDados(signal?: AbortSignal) {
     await Promise.all([
-      carregarBolsistas(),
-      carregarRegistros()
+      carregarBolsistas(signal),
+      carregarRegistros(signal)
     ]);
   }
 
   useEffect(() => {
-    atualizarDados();
+    const controller = new AbortController();
+    atualizarDados(controller.signal);
+    return () => controller.abort();
   }, []);
 
   const registrosFiltrados = useMemo(() => {

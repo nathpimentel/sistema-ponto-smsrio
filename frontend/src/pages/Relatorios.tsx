@@ -1,3 +1,4 @@
+import axios from "axios";
 import {
   useEffect,
   useMemo,
@@ -57,11 +58,12 @@ export default function Relatorios() {
     );
   }, [bolsistas, busca]);
 
-  async function carregarBolsistas() {
+  async function carregarBolsistas(signal?: AbortSignal) {
     try {
-      const response = await api.get("/supervisor/bolsistas");
+      const response = await api.get("/supervisor/bolsistas", { signal });
       setBolsistas(response.data);
-    } catch {
+    } catch (error) {
+      if (axios.isCancel(error)) return;
       toast.error("Erro ao carregar bolsistas");
     }
   }
@@ -107,7 +109,9 @@ export default function Relatorios() {
   }
 
   useEffect(() => {
-    carregarBolsistas();
+    const controller = new AbortController();
+    carregarBolsistas(controller.signal);
+    return () => controller.abort();
   }, []);
 
   return (

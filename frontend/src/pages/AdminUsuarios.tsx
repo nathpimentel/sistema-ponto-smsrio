@@ -1,3 +1,4 @@
+import axios from "axios";
 import {
   useEffect,
   useMemo,
@@ -73,11 +74,12 @@ export default function AdminUsuarios() {
   const bolsistas = usuarios.filter((usuario) => usuario.tipoUsuario === "Bolsista").length;
   const supervisores = usuarios.filter((usuario) => usuario.tipoUsuario === "Supervisor").length;
 
-  async function carregarUsuarios() {
+  async function carregarUsuarios(signal?: AbortSignal) {
     try {
-      const response = await api.get("/supervisor/usuarios");
+      const response = await api.get("/supervisor/usuarios", { signal });
       setUsuarios(response.data);
-    } catch {
+    } catch (error) {
+      if (axios.isCancel(error)) return;
       toast.error("Erro ao carregar usuários");
     }
   }
@@ -115,7 +117,9 @@ export default function AdminUsuarios() {
   }
 
   useEffect(() => {
-    carregarUsuarios();
+    const controller = new AbortController();
+    carregarUsuarios(controller.signal);
+    return () => controller.abort();
   }, []);
 
   return (

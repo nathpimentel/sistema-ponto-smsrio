@@ -45,9 +45,10 @@ export default function PrimeiroAcesso() {
     confirmarSenha.length > 0 && novaSenha !== confirmarSenha;
 
   useEffect(() => {
-    if (tokenRecebido) {
-      validarToken(tokenRecebido, false);
-    }
+    if (!tokenRecebido) return;
+    const controller = new AbortController();
+    validarToken(tokenRecebido, false);
+    return () => controller.abort();
   }, [tokenRecebido]);
 
   async function definirSenha(e: React.FormEvent<HTMLFormElement>) {

@@ -48,37 +48,44 @@ export default function DashboardSupervisor() {
   const [ativos, setAtivos] = useState<Ativo[]>([]);
   const [resumoDia, setResumoDia] = useState<ResumoDia | null>(null);
 
-  async function carregarBolsistas() {
+  async function carregarBolsistas(signal?: AbortSignal) {
     try {
-      const response = await api.get("/supervisor/bolsistas");
+      const response = await api.get("/supervisor/bolsistas", { signal });
       setBolsistas(response.data);
-    } catch {
+    } catch (error) {
+      if (axios.isCancel(error)) return;
       toast.error("Erro ao carregar bolsistas");
     }
   }
 
-  async function carregarAtivos() {
+  async function carregarAtivos(signal?: AbortSignal) {
     try {
-      const response = await api.get("/supervisor/resumo-dia");
+      const response = await api.get("/supervisor/resumo-dia", { signal });
       setResumoDia(response.data);
       setAtivos(Array.isArray(response.data.equipeEmExpediente)
         ? response.data.equipeEmExpediente
         : []);
-    } catch {
+    } catch (error) {
+      if (axios.isCancel(error)) return;
       toast.error("Erro ao carregar resumo do dia");
     }
   }
 
   useEffect(() => {
-    carregarBolsistas();
-    carregarAtivos();
+    const controller = new AbortController();
+
+    carregarBolsistas(controller.signal);
+    carregarAtivos(controller.signal);
 
     const interval = setInterval(() => {
-      carregarBolsistas();
-      carregarAtivos();
+      carregarBolsistas(controller.signal);
+      carregarAtivos(controller.signal);
     }, 60_000);
 
-    return () => clearInterval(interval);
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
   }, []);
 
   return (
