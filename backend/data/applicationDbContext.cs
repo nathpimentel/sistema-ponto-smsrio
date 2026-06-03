@@ -14,6 +14,8 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<RegistroPonto> RegistrosPonto => Set<RegistroPonto>();
 
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -25,6 +27,20 @@ public class ApplicationDbContext : DbContext
 
             entity.HasIndex(u => u.Email)
                 .IsUnique();
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasIndex(rt => rt.TokenHash)
+                .IsUnique();
+
+            entity.HasOne(rt => rt.User)
+                .WithMany()
+                .HasForeignKey(rt => rt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Revogado é calculado — não persiste no banco
+            entity.Ignore(rt => rt.Revogado);
         });
     }
 }
