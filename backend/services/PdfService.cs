@@ -1,3 +1,4 @@
+using backend.dtos;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -61,7 +62,7 @@ public class PdfService
         string nome,
         int mes,
         int ano,
-        List<dynamic> registros,
+        List<RelatorioPontoLinhaDto> registros,
         string totalHorasMes,
         bool relatorioGeral
     )
@@ -119,20 +120,20 @@ public class PdfService
                         header.Cell().Text("Horas");
                     });
 
-                    foreach (dynamic r in registros)
+                    foreach (var r in registros)
                     {
                         if (relatorioGeral)
                         {
-                            table.Cell().Text((string)r.nome);
+                            table.Cell().Text(r.Nome);
                         }
 
-                        table.Cell().Text((string)r.data);
+                        table.Cell().Text(r.Data);
 
-                        table.Cell().Text(FormatarHorario((string)r.entrada));
+                        table.Cell().Text(FormatarHorario(r.Entrada));
 
-                        table.Cell().Text(FormatarHorario((string)r.saida));
+                        table.Cell().Text(FormatarHorario(r.Saida));
 
-                        table.Cell().Text(FormatarDuracao((string)r.horasTrabalhadas));
+                        table.Cell().Text(FormatarDuracao(r.HorasTrabalhadas));
                     }
                 });
 
