@@ -15,8 +15,8 @@ import Register from "./pages/Register";
 
 import DashboardBolsista
 from "./pages/DashboardBolsista";
-import PerfilBolsista
-from "./pages/PerfilBolsista";
+import Perfil
+from "./pages/Perfil";
 import PrimeiroAcesso from "./pages/PrimeiroAcesso";
 import Registros from "./pages/Registros";
 import {
@@ -150,7 +150,7 @@ export default function App() {
   path="/bolsista/perfil"
   element={
     <PrivateRoute allowedRoles={["Bolsista"]}>
-      <PerfilBolsista />
+      <Perfil />
     </PrivateRoute>
   }
 />
@@ -159,7 +159,7 @@ export default function App() {
   path="/perfil"
   element={
     <PrivateRoute allowedRoles={["Supervisor"]}>
-      <PerfilBolsista />
+      <Perfil />
     </PrivateRoute>
   }
 />
