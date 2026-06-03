@@ -30,6 +30,11 @@ using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
+// Duração dos tokens
+// - Access token: 30 min (curto — XSS só funciona durante a janela aberta)
+// - Refresh token: 7 dias (longo — httpOnly cookie, renovado a cada uso)
+
+
 namespace backend.controllers;
 
 [ApiController]
@@ -61,6 +66,61 @@ private const string MensagemSenhaInvalida =
 private static string GerarTokenPrimeiroAcesso()
 {
     return Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+}
+
+private string GerarAccessToken(User user)
+{
+    var claims = new[]
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        new Claim(ClaimTypes.Name, user.Nome),
+        new Claim(ClaimTypes.Email, user.Email),
+        new Claim(ClaimTypes.Role, user.TipoUsuario)
+    };
+
+    var key = new SymmetricSecurityKey(
+        Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!)
+    );
+
+    var token = new JwtSecurityToken(
+        issuer: _configuration["Jwt:Issuer"],
+        audience: _configuration["Jwt:Audience"],
+        claims: claims,
+        expires: DateTime.UtcNow.AddMinutes(30),
+        signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
+    );
+
+    return new JwtSecurityTokenHandler().WriteToken(token);
+}
+
+private string GerarRefreshTokenParaUsuario(User user)
+{
+    var tokenBruto = Convert.ToHexString(RandomNumberGenerator.GetBytes(64))
+        .ToLowerInvariant();
+
+    var refreshToken = new RefreshToken
+    {
+        UserId    = user.Id,
+        TokenHash = GerarHashToken(tokenBruto),
+        ExpiresAt = DateTime.UtcNow.AddDays(7),
+        CreatedAt = DateTime.UtcNow
+    };
+
+    _context.RefreshTokens.Add(refreshToken);
+    _context.SaveChanges();
+
+    return tokenBruto;
+}
+
+private void SetRefreshTokenCookie(string tokenBruto)
+{
+    Response.Cookies.Append("refresh_token", tokenBruto, new CookieOptions
+    {
+        HttpOnly = true,
+        SameSite = SameSiteMode.Lax,
+        Secure   = false, // true em produção com HTTPS
+        Expires  = DateTimeOffset.UtcNow.AddDays(7)
+    });
 }
 
 private static string GerarHashToken(string token)
@@ -327,38 +387,82 @@ public IActionResult Register(RegisterDto dto)
             );
         }
 
-        var claims = new[]
+        var accessToken   = GerarAccessToken(user);
+        var refreshBruto  = GerarRefreshTokenParaUsuario(user);
+
+        SetRefreshTokenCookie(refreshBruto);
+
+        return Ok(new
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Nome),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.TipoUsuario)
-        };
+            token      = accessToken,
+            tipoUsuario = user.TipoUsuario,
+            nome        = user.Nome
+        });
+    }
 
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!)
-        );
+    [HttpPost("refresh")]
+    public IActionResult Refresh()
+    {
+        if (!Request.Cookies.TryGetValue("refresh_token", out var tokenBruto))
+        {
+            return Unauthorized("Refresh token nao encontrado");
+        }
 
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var tokenHash = GerarHashToken(tokenBruto);
 
-        var token = new JwtSecurityToken(
-            issuer: _configuration["Jwt:Issuer"],
-            audience: _configuration["Jwt:Audience"],
-            claims: claims,
-            expires: DateTime.UtcNow.AddHours(8),
-            signingCredentials: creds
-        );
+        var refreshToken = _context.RefreshTokens
+            .Include(rt => rt.User)
+            .FirstOrDefault(rt => rt.TokenHash == tokenHash);
 
-        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+        if (refreshToken == null || refreshToken.Revogado)
+        {
+            Response.Cookies.Delete("refresh_token");
+            return Unauthorized("Refresh token invalido ou expirado");
+        }
 
-       return Ok(new
-{
-    token = tokenString,
+        var user = refreshToken.User;
 
-    tipoUsuario = user.TipoUsuario,
+        if (!user.Aprovado || !user.Ativo)
+        {
+            refreshToken.RevokedAt = DateTime.UtcNow;
+            _context.SaveChanges();
+            Response.Cookies.Delete("refresh_token");
+            return Unauthorized("Conta inativa");
+        }
 
-    nome = user.Nome
-});
+        // Rotacao: revogar o atual e emitir um novo
+        refreshToken.RevokedAt = DateTime.UtcNow;
+        _context.SaveChanges();
+
+        var novoRefreshBruto = GerarRefreshTokenParaUsuario(user);
+        SetRefreshTokenCookie(novoRefreshBruto);
+
+        return Ok(new
+        {
+            token       = GerarAccessToken(user),
+            tipoUsuario = user.TipoUsuario,
+            nome        = user.Nome
+        });
+    }
+
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        if (Request.Cookies.TryGetValue("refresh_token", out var tokenBruto))
+        {
+            var tokenHash = GerarHashToken(tokenBruto);
+            var refreshToken = _context.RefreshTokens
+                .FirstOrDefault(rt => rt.TokenHash == tokenHash && rt.RevokedAt == null);
+
+            if (refreshToken != null)
+            {
+                refreshToken.RevokedAt = DateTime.UtcNow;
+                _context.SaveChanges();
+            }
+        }
+
+        Response.Cookies.Delete("refresh_token");
+        return Ok();
     }
 
     [Authorize]
