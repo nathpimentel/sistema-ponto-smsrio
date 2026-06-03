@@ -65,9 +65,21 @@ public class SupervisorController : ControllerBase
 
     [Authorize(Roles = "Supervisor")]
     [HttpGet("usuarios")]
-    public IActionResult Usuarios()
+    public IActionResult Usuarios(int pagina = 1, int tamanhoPagina = 25)
     {
-        var usuarios = _context.Users
+        tamanhoPagina = Math.Clamp(tamanhoPagina, 1, 100);
+
+        var query = _context.Users
+            .OrderBy(u => u.Nome)
+            .AsQueryable();
+
+        var totalItems = query.Count();
+        var totalPaginas = (int)Math.Ceiling((double)totalItems / tamanhoPagina);
+        pagina = Math.Clamp(pagina, 1, Math.Max(1, totalPaginas));
+
+        var items = query
+            .Skip((pagina - 1) * tamanhoPagina)
+            .Take(tamanhoPagina)
             .Select(u => new
             {
                 u.Id,
@@ -82,7 +94,7 @@ public class SupervisorController : ControllerBase
             })
             .ToList();
 
-        return Ok(usuarios);
+        return Ok(new { items, totalItems, pagina, totalPaginas, tamanhoPagina });
     }
 
     [Authorize(Roles = "Supervisor")]
@@ -90,7 +102,9 @@ public class SupervisorController : ControllerBase
     public IActionResult BuscarTodosRegistros(
         int? mes,
         int? ano,
-        string? busca
+        string? busca,
+        int pagina = 1,
+        int tamanhoPagina = 20
     )
     {
         if (mes.HasValue && (mes.Value < 1 || mes.Value > 12))
@@ -102,6 +116,8 @@ public class SupervisorController : ControllerBase
         {
             return BadRequest("Ano inválido");
         }
+
+        tamanhoPagina = Math.Clamp(tamanhoPagina, 1, 100);
 
         var query = _context.RegistrosPonto.AsQueryable();
 
@@ -120,14 +136,20 @@ public class SupervisorController : ControllerBase
             var termoBusca = busca.Trim().ToLower();
 
             query = query.Where(r =>
-                r.User.Nome.ToLower().Contains(termoBusca) ||
-                r.User.Email.ToLower().Contains(termoBusca)
+                EF.Functions.ILike(r.User.Nome, "%" + termoBusca + "%") ||
+                r.User.Email.Contains(termoBusca)
             );
         }
 
-        var registros = query
+        var totalItems = query.Count();
+        var totalPaginas = (int)Math.Ceiling((double)totalItems / tamanhoPagina);
+        pagina = Math.Clamp(pagina, 1, Math.Max(1, totalPaginas));
+
+        var items = query
             .OrderBy(r => r.User.Nome)
             .ThenBy(r => r.Data)
+            .Skip((pagina - 1) * tamanhoPagina)
+            .Take(tamanhoPagina)
             .ToList()
             .Select(r => new
             {
@@ -160,7 +182,7 @@ public class SupervisorController : ControllerBase
             })
             .ToList();
 
-        return Ok(registros);
+        return Ok(new { items, totalItems, pagina, totalPaginas, tamanhoPagina });
     }
 
     [Authorize(Roles = "Supervisor")]
@@ -375,10 +397,22 @@ public class SupervisorController : ControllerBase
 
     [Authorize(Roles = "Supervisor")]
     [HttpGet("bolsistas")]
-    public IActionResult ListarBolsistas()
+    public IActionResult ListarBolsistas(int pagina = 1, int tamanhoPagina = 50)
     {
-        var bolsistas = _context.Users
+        tamanhoPagina = Math.Clamp(tamanhoPagina, 1, 200);
+
+        var query = _context.Users
             .Where(u => u.TipoUsuario == "Bolsista")
+            .OrderBy(u => u.Nome)
+            .AsQueryable();
+
+        var totalItems = query.Count();
+        var totalPaginas = (int)Math.Ceiling((double)totalItems / tamanhoPagina);
+        pagina = Math.Clamp(pagina, 1, Math.Max(1, totalPaginas));
+
+        var items = query
+            .Skip((pagina - 1) * tamanhoPagina)
+            .Take(tamanhoPagina)
             .Select(u => new
             {
                 id = u.Id,
@@ -390,7 +424,7 @@ public class SupervisorController : ControllerBase
             })
             .ToList();
 
-        return Ok(bolsistas);
+        return Ok(new { items, totalItems, pagina, totalPaginas, tamanhoPagina });
     }
 
     [Authorize(Roles = "Supervisor")]
