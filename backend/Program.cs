@@ -5,8 +5,18 @@ using Microsoft.EntityFrameworkCore;
 using backend.data;
 using Microsoft.OpenApi.Models;
 using backend.services;
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext());
 
 builder.Services.AddControllers();
 
@@ -103,6 +113,8 @@ if (app.Environment.IsDevelopment())
 }
 
 // app.UseHttpsRedirection();
+
+app.UseSerilogRequestLogging();
 
 app.UseCors("AllowFrontend");
 
