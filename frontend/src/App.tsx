@@ -32,10 +32,11 @@ import DashboardSupervisor from "./pages/DashboardSupervisor";
 import Relatorios from "./pages/Relatorios";
 
 import PrivateRoute from "./routes/PrivateRoute";
+import { AuthProvider } from "./contexts/AuthContext";
 
 export default function App() {
   return (
-    <>
+    <AuthProvider>
       <Toaster
         position="top-right"
         gutter={12}
@@ -197,6 +198,6 @@ export default function App() {
       />
 
       </Routes>
-    </>
+    </AuthProvider>
   );
 }
