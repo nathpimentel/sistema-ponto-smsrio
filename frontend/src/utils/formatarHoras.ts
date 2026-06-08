@@ -31,7 +31,9 @@ export function formatarISOParaHorario(iso?: string | null): string {
   if (!iso) return "--:--";
 
   try {
-    return new Date(iso).toLocaleTimeString("pt-BR", {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "--:--";
+    return d.toLocaleTimeString("pt-BR", {
       hour: "2-digit",
       minute: "2-digit"
     });

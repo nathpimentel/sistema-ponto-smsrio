@@ -422,7 +422,7 @@ public IActionResult Register(RegisterDto dto)
 
         var user = refreshToken.User;
 
-        if (!user.Aprovado || !user.Ativo)
+        if (!user.Aprovado)
         {
             refreshToken.RevokedAt = DateTime.UtcNow;
             _context.SaveChanges();
