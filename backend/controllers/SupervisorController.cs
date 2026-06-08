@@ -1,9 +1,10 @@
-using backend.services;
-using backend.data;
+using backend.Services;
+using backend.Data;
+using backend.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace backend.controllers;
+namespace backend.Controllers;
 
 [ApiController]
 [Route("supervisor")]
@@ -23,12 +24,6 @@ public class SupervisorController : ControllerBase
 
     private static DateTime HojeLocal =>
         DateTime.SpecifyKind(DateTime.Now.Date, DateTimeKind.Utc);
-
-    private static string FormatarDuracao(TimeSpan duracao)
-    {
-        var totalMinutos = Math.Max(0, (int)Math.Floor(duracao.TotalMinutes));
-        return $"{totalMinutos / 60:D2}:{totalMinutos % 60:D2}";
-    }
 
     [Authorize(Roles = "Supervisor")]
 [HttpGet("usuarios")]
@@ -96,6 +91,7 @@ public IActionResult BuscarTodosRegistros(
         var registros = query
             .OrderBy(r => r.User.Nome)
             .ThenBy(r => r.Data)
+            .ToList()
             .Select(r => new
             {
                 nome = r.User.Nome,
@@ -120,7 +116,7 @@ public IActionResult BuscarTodosRegistros(
 
                 tempoTrabalhado =
                     r.Entrada != null && r.Saida != null
-                        ? FormatarDuracao(r.Saida.Value - r.Entrada.Value)
+                        ? TempoFormatter.FormatarDuracao(r.Saida.Value - r.Entrada.Value)
                         : null
             })
             .ToList();
@@ -236,7 +232,7 @@ public IActionResult GerarRelatorioPdf(
                     : "",
 
                 horasTrabalhadas =
-                    FormatarDuracao(tempo),
+                    TempoFormatter.FormatarDuracao(tempo),
 
                 minutosTotais = tempo.TotalMinutes
             };
@@ -304,7 +300,7 @@ public IActionResult GerarRelatorioPdf(
                     : "",
 
                 horasTrabalhadas =
-                    FormatarDuracao(tempo),
+                    TempoFormatter.FormatarDuracao(tempo),
 
                 minutosTotais = tempo.TotalMinutes
             };
@@ -358,6 +354,7 @@ var pdf = _pdfService.GerarRelatorio(
                     r.Entrada != null &&
                     r.Saida == null
                 )
+                .ToList()
                 .Select(r => new
                 {
                     nome = r.User.Nome,
@@ -479,7 +476,7 @@ public IActionResult ExcluirUsuario(int id)
                         : null,
 
                     horasTrabalhadas = tempo != null
-                        ? FormatarDuracao(tempo.Value)
+                        ? TempoFormatter.FormatarDuracao(tempo.Value)
                         : "00:00",
 
                     minutosTotais = tempo != null

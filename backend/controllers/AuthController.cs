@@ -1,19 +1,4 @@
-/*
-Este código cria endpoint:
-    POST /auth/register
-
-Recebe:
-    Nome
-    Email
-    Senha
-    Tipo de Usuário
-
-Depois:
-    Criptografa a senha e manda para o banco de dados.
-
-*/
-
-using backend.dtos;
+using backend.Dtos;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -21,11 +6,11 @@ using System.Text;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using backend.data;
-using backend.entities;
+using backend.Data;
+using backend.Entities;
 using BCrypt.Net;
 
-namespace backend.controllers;
+namespace backend.Controllers;
 
 [ApiController]
 [Route("auth")]

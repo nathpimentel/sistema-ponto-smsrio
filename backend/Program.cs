@@ -2,9 +2,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
-using backend.data;
+using backend.Data;
 using Microsoft.OpenApi.Models;
-using backend.services;
+using backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

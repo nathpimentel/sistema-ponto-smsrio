@@ -3,7 +3,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 
-namespace backend.services;
+namespace backend.Services;
 
 public class PdfService
 {

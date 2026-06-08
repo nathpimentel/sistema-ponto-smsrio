@@ -1,10 +1,11 @@
-using backend.data;
-using backend.entities;
+using backend.Data;
+using backend.Entities;
+using backend.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
-namespace backend.controllers;
+namespace backend.Controllers;
 
 [ApiController]
 [Route("ponto")]
@@ -19,12 +20,6 @@ public class PontoController : ControllerBase
 
     private static DateTime HojeLocal =>
         DateTime.SpecifyKind(DateTime.Now.Date, DateTimeKind.Utc);
-
-    private static string FormatarDuracao(TimeSpan duracao)
-    {
-        var totalMinutos = Math.Max(0, (int)Math.Floor(duracao.TotalMinutes));
-        return $"{totalMinutos / 60:D2}:{totalMinutos % 60:D2}";
-    }
 
     private User? ObterUsuarioLogado()
     {
@@ -175,7 +170,7 @@ public class PontoController : ControllerBase
             saida = registro.Saida?.ToLocalTime(),
 
             tempoTrabalhado = registro.Entrada != null && registro.Saida != null
-    ? FormatarDuracao(registro.Saida.Value - registro.Entrada.Value)
+    ? TempoFormatter.FormatarDuracao(registro.Saida.Value - registro.Entrada.Value)
     : null
         });
     }
@@ -215,7 +210,7 @@ public IActionResult MeusRegistros()
             horas =
                 r.Entrada != null &&
                 r.Saida != null
-                    ? FormatarDuracao(r.Saida.Value - r.Entrada.Value)
+                    ? TempoFormatter.FormatarDuracao(r.Saida.Value - r.Entrada.Value)
                     : "00:00"
         })
         .ToList();

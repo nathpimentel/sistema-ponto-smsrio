@@ -1,4 +1,4 @@
-namespace backend.dtos;
+namespace backend.Dtos;
 
 public class RegisterDto
 {

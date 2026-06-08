@@ -1,19 +1,4 @@
-/*
-UserId
-Relaciona registro ao usuário.
-
-Entrada
-Horário entrada.
-
-Saida
-Horário saída.
-
-HorasTrabalhadas
-Total horas do dia.
-*/
-
-
-namespace backend.entities;
+namespace backend.Entities;
 
 public class RegistroPonto
 {

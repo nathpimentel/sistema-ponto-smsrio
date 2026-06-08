@@ -1,4 +1,4 @@
-namespace backend.entities;
+namespace backend.Entities;
 
 using System.Text.Json.Serialization;
 

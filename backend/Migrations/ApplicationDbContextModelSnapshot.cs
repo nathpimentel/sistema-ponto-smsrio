@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using backend.data;
+using backend.Data;
 
 #nullable disable
 
@@ -22,7 +22,7 @@ namespace backend.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("backend.entities.RegistroPonto", b =>
+            modelBuilder.Entity("backend.Entities.RegistroPonto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -52,7 +52,7 @@ namespace backend.Migrations
                     b.ToTable("RegistrosPonto");
                 });
 
-            modelBuilder.Entity("backend.entities.User", b =>
+            modelBuilder.Entity("backend.Entities.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -98,9 +98,9 @@ namespace backend.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("backend.entities.RegistroPonto", b =>
+            modelBuilder.Entity("backend.Entities.RegistroPonto", b =>
                 {
-                    b.HasOne("backend.entities.User", "User")
+                    b.HasOne("backend.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)

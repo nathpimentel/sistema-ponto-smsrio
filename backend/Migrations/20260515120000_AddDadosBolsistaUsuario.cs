@@ -1,6 +1,6 @@
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using backend.data;
+using backend.Data;
 
 #nullable disable
 
