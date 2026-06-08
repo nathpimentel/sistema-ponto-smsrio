@@ -1,5 +1,6 @@
 using backend.services;
 using backend.data;
+using backend.dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -511,5 +512,39 @@ public IActionResult ExcluirUsuario(int id)
                 registros = relatorio
             });
         }
+
+    [Authorize(Roles = "Supervisor")]
+    [HttpPut("registros/{id}")]
+    public IActionResult EditarRegistro(int id, EditarRegistroDto dto)
+    {
+        var registro = _context.RegistrosPonto
+            .FirstOrDefault(r => r.Id == id);
+
+        if (registro == null)
+        {
+            return NotFound("Registro não encontrado");
+        }
+
+        if (dto.Entrada.HasValue && dto.Saida.HasValue && dto.Entrada >= dto.Saida)
+        {
+            return BadRequest("Horário de entrada deve ser anterior ao de saída");
+        }
+
+        if (dto.Data.HasValue)
+            registro.Data = dto.Data.Value;
+
+        if (dto.Entrada.HasValue)
+            registro.Entrada = dto.Entrada.Value.ToUniversalTime();
+
+        if (dto.Saida.HasValue)
+            registro.Saida = dto.Saida.Value.ToUniversalTime();
+
+        _context.SaveChanges();
+
+        return Ok(new
+        {
+            mensagem = "Registro atualizado com sucesso"
+        });
+    }
 
     }
