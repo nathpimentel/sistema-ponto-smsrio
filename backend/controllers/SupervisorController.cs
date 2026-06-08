@@ -515,7 +515,7 @@ public IActionResult ExcluirUsuario(int id)
 
     [Authorize(Roles = "Supervisor")]
     [HttpPut("registros/{id}")]
-    public IActionResult EditarRegistro(int id, EditarRegistroDto dto)
+    public IActionResult EditarRegistro(int id, AjustarRegistroPontoDto dto)
     {
         var registro = _context.RegistrosPonto
             .FirstOrDefault(r => r.Id == id);
