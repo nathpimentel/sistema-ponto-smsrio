@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  backend:
+    name: Backend — build e testes
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restaurar dependencias
+        run: dotnet restore backend
+
+      - name: Build
+        run: dotnet build backend --no-restore --configuration Release
+
+      - name: Testes
+        run: dotnet test backend.Tests --no-build --configuration Release
+        if: hashFiles('backend.Tests/backend.Tests.csproj') != ''
+
+  frontend:
+    name: Frontend — lint e build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+        working-directory: frontend
+
+      - name: Lint
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Testes
+        run: npm run test -- --run
+        working-directory: frontend
+        if: hashFiles('frontend/vitest.config.ts') != ''
+
+      - name: Build
+        run: npm run build
+        working-directory: frontend
