@@ -13,4 +13,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<User> Users => Set<User>();
 
     public DbSet<RegistroPonto> RegistrosPonto => Set<RegistroPonto>();
+
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 }

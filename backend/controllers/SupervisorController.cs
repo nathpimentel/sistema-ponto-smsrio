@@ -1,7 +1,9 @@
 using backend.services;
 using backend.data;
+using backend.entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace backend.controllers;
 
@@ -19,6 +21,24 @@ public class SupervisorController : ControllerBase
     {
         _context = context;
         _pdfService = pdfService;
+    }
+
+    private void RegistrarAudit(string acao, int? alvoId = null, string? alvoNome = null, string? detalhes = null)
+    {
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var nomeClaim = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+        _ = int.TryParse(idClaim, out var supervisorId);
+
+        _context.AuditLogs.Add(new AuditLog
+        {
+            SupervisorId = supervisorId,
+            SupervisorNome = nomeClaim,
+            Acao = acao,
+            AlvoId = alvoId,
+            AlvoNome = alvoNome,
+            Detalhes = detalhes,
+            DataHora = DateTime.UtcNow
+        });
     }
 
     private static DateTime HojeLocal =>
@@ -142,6 +162,7 @@ public IActionResult AprovarUsuario(int id)
 
     user.Aprovado = true;
 
+    RegistrarAudit("aprovar_usuario", user.Id, user.Nome);
     _context.SaveChanges();
 
     return Ok();
@@ -400,6 +421,7 @@ public IActionResult DesativarUsuario(int id)
 
     user.Aprovado = false;
 
+    RegistrarAudit("desativar_usuario", user.Id, user.Nome);
     _context.SaveChanges();
 
     return Ok();
@@ -423,6 +445,7 @@ public IActionResult ExcluirUsuario(int id)
 
     _context.RegistrosPonto.RemoveRange(registros);
 
+    RegistrarAudit("excluir_usuario", user.Id, user.Nome, $"{registros.Count} registros removidos");
     _context.Users.Remove(user);
 
     _context.SaveChanges();
@@ -511,5 +534,28 @@ public IActionResult ExcluirUsuario(int id)
                 registros = relatorio
             });
         }
+
+    [Authorize(Roles = "Supervisor")]
+    [HttpGet("audit-log")]
+    public IActionResult AuditLog(int pagina = 1, int tamanhoPagina = 50)
+    {
+        var logs = _context.AuditLogs
+            .OrderByDescending(a => a.DataHora)
+            .Skip((pagina - 1) * tamanhoPagina)
+            .Take(tamanhoPagina)
+            .Select(a => new
+            {
+                a.Id,
+                a.SupervisorNome,
+                a.Acao,
+                a.AlvoId,
+                a.AlvoNome,
+                a.Detalhes,
+                dataHora = a.DataHora.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+            })
+            .ToList();
+
+        return Ok(logs);
+    }
 
     }
