@@ -269,10 +269,11 @@ public IActionResult Register(RegisterDto dto)
     });
 }
 
-    [HttpGet("primeiro-acesso/validar-token")]
-    public IActionResult ValidarTokenPrimeiroAcesso([FromQuery] string token)
+    [EnableRateLimiting("login")]
+    [HttpPost("primeiro-acesso/validar-token")]
+    public IActionResult ValidarTokenPrimeiroAcesso(ValidarTokenPrimeiroAcessoDto dto)
     {
-        token = (token ?? "").Trim();
+        var token = (dto.Token ?? "").Trim();
 
         if (string.IsNullOrWhiteSpace(token))
         {
@@ -306,6 +307,7 @@ public IActionResult Register(RegisterDto dto)
         });
     }
 
+    [EnableRateLimiting("login")]
     [HttpPost("primeiro-acesso/definir-senha")]
     public IActionResult DefinirSenhaPrimeiroAcesso(PrimeiroAcessoDefinirSenhaDto dto)
     {
@@ -422,7 +424,7 @@ public IActionResult Register(RegisterDto dto)
 
         var user = refreshToken.User;
 
-        if (!user.Aprovado || !user.Ativo)
+        if (!user.Aprovado)
         {
             refreshToken.RevokedAt = DateTime.UtcNow;
             _context.SaveChanges();

@@ -123,8 +123,8 @@ export default function PrimeiroAcesso() {
     setValidandoToken(true);
 
     try {
-      await api.get("/auth/primeiro-acesso/validar-token", {
-        params: { token: tokenLimpo }
+      await api.post("/auth/primeiro-acesso/validar-token", {
+        token: tokenLimpo
       });
 
       setToken(tokenLimpo);
