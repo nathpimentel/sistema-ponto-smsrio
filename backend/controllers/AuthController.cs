@@ -363,6 +363,11 @@ public IActionResult Register(RegisterDto dto)
     {
         var email = dto.Email.Trim().ToLowerInvariant();
 
+        if (!EmailValido(email))
+        {
+            return BadRequest("Email invalido");
+        }
+
         var user = _context.Users.FirstOrDefault(u => u.Email.ToLower() == email);
 
         if (user == null)
