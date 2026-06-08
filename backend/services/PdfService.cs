@@ -48,67 +48,67 @@ public class PdfService
             {
                 page.Margin(30);
 
-                    page.Header().Column(column =>
+                page.Header().Column(column =>
 {
-    column.Item()
-        .Text("Relatório de Ponto")
-        .FontSize(20)
-        .Bold();
+column.Item()
+    .Text("Relatório de Ponto")
+    .FontSize(20)
+    .Bold();
 
-    column.Item()
-        .Text($"Bolsista: {nome}");
+column.Item()
+    .Text($"Bolsista: {nome}");
 
-    column.Item()
-        .Text($"Mês/Ano: {mes:D2}/{ano}");
+column.Item()
+    .Text($"Mês/Ano: {mes:D2}/{ano}");
 
-    column.Item()
-        .Text($"Carga Horária Total: {FormatarHorasLegivel(totalHorasMes)}");
+column.Item()
+    .Text($"Carga Horária Total: {FormatarHorasLegivel(totalHorasMes)}");
 });
 
-page.Content().Table(table =>
-{
-    table.ColumnsDefinition(columns =>
-{
-    if (relatorioGeral)
-    {
-        columns.RelativeColumn();
-    }
+                page.Content().Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                {
+                    if (relatorioGeral)
+                    {
+                        columns.RelativeColumn();
+                    }
 
-    columns.RelativeColumn();
-    columns.RelativeColumn();
-    columns.RelativeColumn();
-    columns.RelativeColumn();
-});
+                    columns.RelativeColumn();
+                    columns.RelativeColumn();
+                    columns.RelativeColumn();
+                    columns.RelativeColumn();
+                });
 
-    table.Header(header =>
-{
-    if (relatorioGeral)
-    {
-        header.Cell().Text("Nome");
-    }
+                    table.Header(header =>
+                {
+                    if (relatorioGeral)
+                    {
+                        header.Cell().Text("Nome");
+                    }
 
-    header.Cell().Text("Data");
-    header.Cell().Text("Entrada");
-    header.Cell().Text("Saída");
-    header.Cell().Text("Horas");
-});
+                    header.Cell().Text("Data");
+                    header.Cell().Text("Entrada");
+                    header.Cell().Text("Saída");
+                    header.Cell().Text("Horas");
+                });
 
-foreach (dynamic r in registros)
-{
-    if (relatorioGeral)
-    {
-        table.Cell().Text((string)r.nome);
-    }
+                    foreach (dynamic r in registros)
+                    {
+                        if (relatorioGeral)
+                        {
+                            table.Cell().Text((string)r.nome);
+                        }
 
-    table.Cell().Text((string)r.data);
+                        table.Cell().Text((string)r.data);
 
-    table.Cell().Text(FormatarHorasLegivel((string)r.entrada));
+                        table.Cell().Text(FormatarHorasLegivel((string)r.entrada));
 
-    table.Cell().Text(FormatarHorasLegivel((string)r.saida));
+                        table.Cell().Text(FormatarHorasLegivel((string)r.saida));
 
-    table.Cell().Text(FormatarHorasLegivel((string)r.horasTrabalhadas));
-}
-});
+                        table.Cell().Text(FormatarHorasLegivel((string)r.horasTrabalhadas));
+                    }
+                });
 
                 page.Footer()
                     .AlignCenter()

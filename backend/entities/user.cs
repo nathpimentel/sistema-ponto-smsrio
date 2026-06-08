@@ -20,7 +20,7 @@ public class User
     public string CursoFaculdade { get; set; } = "";
 
     public int? CargaHorariaSemanal { get; set; }
-    
+
     public bool Aprovado { get; set; } = false;
 
     public string? FotoBase64 { get; set; }

@@ -33,7 +33,7 @@ public class AuthController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
-    
+
     public AuthController(ApplicationDbContext context, IConfiguration configuration)
     {
         _context = context;
@@ -41,127 +41,127 @@ public class AuthController : ControllerBase
         _configuration = configuration;
     }
 
-private static bool SenhaValida(string senha)
-{
-    return senha.Length >= 8 &&
-        senha.Any(char.IsDigit) &&
-        senha.Any(c => !char.IsLetterOrDigit(c));
-}
-
-private User? ObterUsuarioLogado()
-{
-    var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-    if (int.TryParse(idClaim, out var userId))
+    private static bool SenhaValida(string senha)
     {
-        return _context.Users.FirstOrDefault(u => u.Id == userId);
+        return senha.Length >= 8 &&
+            senha.Any(char.IsDigit) &&
+            senha.Any(c => !char.IsLetterOrDigit(c));
     }
 
-    var email = User.FindFirst(ClaimTypes.Email)?.Value;
-
-    if (string.IsNullOrWhiteSpace(email))
+    private User? ObterUsuarioLogado()
     {
-        return null;
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (int.TryParse(idClaim, out var userId))
+        {
+            return _context.Users.FirstOrDefault(u => u.Id == userId);
+        }
+
+        var email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return null;
+        }
+
+        var emailNormalizado = email.Trim().ToLowerInvariant();
+
+        return _context.Users
+            .FirstOrDefault(u => u.Email.ToLower() == emailNormalizado);
     }
 
-    var emailNormalizado = email.Trim().ToLowerInvariant();
-
-    return _context.Users
-        .FirstOrDefault(u => u.Email.ToLower() == emailNormalizado);
-}
-
-[HttpPost("register")]
-public IActionResult Register(RegisterDto dto)
-{
-    var nome = (dto.Nome ?? "").Trim();
-    var email = (dto.Email ?? "").Trim().ToLowerInvariant();
-    var tipoUsuario = (dto.TipoUsuario ?? "").Trim();
-    var unidade = (dto.Unidade ?? "").Trim();
-    var cursoFaculdade = (dto.CursoFaculdade ?? "").Trim();
-    var cargaHorariaSemanal = dto.CargaHorariaSemanal;
-
-    if (
-        string.IsNullOrWhiteSpace(nome) ||
-        string.IsNullOrWhiteSpace(email) ||
-        string.IsNullOrWhiteSpace(dto.Senha)
-    )
+    [HttpPost("register")]
+    public IActionResult Register(RegisterDto dto)
     {
-        return BadRequest(
-            "Nome, email e senha são obrigatórios"
-        );
-    }
+        var nome = (dto.Nome ?? "").Trim();
+        var email = (dto.Email ?? "").Trim().ToLowerInvariant();
+        var tipoUsuario = (dto.TipoUsuario ?? "").Trim();
+        var unidade = (dto.Unidade ?? "").Trim();
+        var cursoFaculdade = (dto.CursoFaculdade ?? "").Trim();
+        var cargaHorariaSemanal = dto.CargaHorariaSemanal;
 
-    if (!SenhaValida(dto.Senha))
-    {
-        return BadRequest(
-            "A senha deve ter no mínimo 8 caracteres, 1 número e 1 caractere especial"
-        );
-    }
-
-    if (
-        tipoUsuario != "Supervisor" &&
-        tipoUsuario != "Bolsista"
-    )
-    {
-        return BadRequest(
-            "Tipo de usuário inválido"
-        );
-    }
-
-    if (
-        tipoUsuario == "Bolsista" &&
-        (
-            string.IsNullOrWhiteSpace(unidade) ||
-            string.IsNullOrWhiteSpace(cursoFaculdade) ||
-            !cargaHorariaSemanal.HasValue ||
-            cargaHorariaSemanal.Value <= 0
+        if (
+            string.IsNullOrWhiteSpace(nome) ||
+            string.IsNullOrWhiteSpace(email) ||
+            string.IsNullOrWhiteSpace(dto.Senha)
         )
-    )
-    {
-        return BadRequest(
-            "Curso, carga horária semanal e unidade são obrigatórios para bolsistas"
-        );
+        {
+            return BadRequest(
+                "Nome, email e senha são obrigatórios"
+            );
+        }
+
+        if (!SenhaValida(dto.Senha))
+        {
+            return BadRequest(
+                "A senha deve ter no mínimo 8 caracteres, 1 número e 1 caractere especial"
+            );
+        }
+
+        if (
+            tipoUsuario != "Supervisor" &&
+            tipoUsuario != "Bolsista"
+        )
+        {
+            return BadRequest(
+                "Tipo de usuário inválido"
+            );
+        }
+
+        if (
+            tipoUsuario == "Bolsista" &&
+            (
+                string.IsNullOrWhiteSpace(unidade) ||
+                string.IsNullOrWhiteSpace(cursoFaculdade) ||
+                !cargaHorariaSemanal.HasValue ||
+                cargaHorariaSemanal.Value <= 0
+            )
+        )
+        {
+            return BadRequest(
+                "Curso, carga horária semanal e unidade são obrigatórios para bolsistas"
+            );
+        }
+
+        var emailExiste = _context.Users
+            .Any(u => u.Email.ToLower() == email);
+
+        if (emailExiste)
+        {
+            return BadRequest(
+                "Email já cadastrado"
+            );
+        }
+
+        var senhaHash =
+            BCrypt.Net.BCrypt.HashPassword(
+                dto.Senha
+            );
+
+        var user = new User
+        {
+            Nome = nome,
+            Email = email,
+            SenhaHash = senhaHash,
+            TipoUsuario = tipoUsuario,
+            Unidade = tipoUsuario == "Bolsista" ? unidade : "",
+            CursoFaculdade = tipoUsuario == "Bolsista" ? cursoFaculdade : "",
+            CargaHorariaSemanal = tipoUsuario == "Bolsista"
+                ? cargaHorariaSemanal
+                : null,
+            Aprovado = tipoUsuario == "Supervisor"
+        };
+
+        _context.Users.Add(user);
+
+        _context.SaveChanges();
+
+        return Ok(new
+        {
+            mensagem =
+                "Usuário cadastrado com sucesso"
+        });
     }
-
-    var emailExiste = _context.Users
-        .Any(u => u.Email.ToLower() == email);
-
-    if (emailExiste)
-    {
-        return BadRequest(
-            "Email já cadastrado"
-        );
-    }
-
-    var senhaHash =
-        BCrypt.Net.BCrypt.HashPassword(
-            dto.Senha
-        );
-
-    var user = new User
-    {
-        Nome = nome,
-        Email = email,
-        SenhaHash = senhaHash,
-        TipoUsuario = tipoUsuario,
-        Unidade = tipoUsuario == "Bolsista" ? unidade : "",
-        CursoFaculdade = tipoUsuario == "Bolsista" ? cursoFaculdade : "",
-        CargaHorariaSemanal = tipoUsuario == "Bolsista"
-            ? cargaHorariaSemanal
-            : null,
-        Aprovado = tipoUsuario == "Supervisor"
-    };
-
-    _context.Users.Add(user);
-
-    _context.SaveChanges();
-
-    return Ok(new
-    {
-        mensagem =
-            "Usuário cadastrado com sucesso"
-    });
-}
 
     [HttpPost("login")]
     public IActionResult Login(LoginDto dto)
@@ -212,14 +212,14 @@ public IActionResult Register(RegisterDto dto)
 
         var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
-       return Ok(new
-{
-    token = tokenString,
+        return Ok(new
+        {
+            token = tokenString,
 
-    tipoUsuario = user.TipoUsuario,
+            tipoUsuario = user.TipoUsuario,
 
-    nome = user.Nome
-});
+            nome = user.Nome
+        });
     }
 
     [Authorize]
@@ -380,7 +380,7 @@ public IActionResult Register(RegisterDto dto)
             mensagem = "Senha alterada com sucesso"
         });
     }
-    
-    
+
+
 }
 

@@ -60,11 +60,11 @@ public class PontoController : ControllerBase
         }
 
         if (user.TipoUsuario == "Supervisor")
-    {
-        return BadRequest(
-            "Supervisor não pode bater ponto"
-        );
-    }
+        {
+            return BadRequest(
+                "Supervisor não pode bater ponto"
+            );
+        }
 
         var hoje = HojeLocal;
 
@@ -120,11 +120,11 @@ public class PontoController : ControllerBase
         }
 
         if (user.TipoUsuario == "Supervisor")
-    {
-        return BadRequest(
-            "Supervisor não pode bater saída"
-        );
-    }
+        {
+            return BadRequest(
+                "Supervisor não pode bater saída"
+            );
+        }
 
         var hoje = HojeLocal;
 
@@ -143,7 +143,7 @@ public class PontoController : ControllerBase
 
         var registro = registroPendente;
 
-                if (registro == null)
+        if (registro == null)
         {
             return BadRequest(
                 "Não existe entrada pendente para registrar saída"
@@ -181,106 +181,106 @@ public class PontoController : ControllerBase
     }
 
 
-[Authorize]
-[HttpGet("meus-registros")]
-public IActionResult MeusRegistros()
-{
-    var user = ObterUsuarioLogado();
-
-    if (user == null)
+    [Authorize]
+    [HttpGet("meus-registros")]
+    public IActionResult MeusRegistros()
     {
-        return Unauthorized();
-    }
+        var user = ObterUsuarioLogado();
 
-    var registros = _context.RegistrosPonto
-        .Where(r => r.UserId == user.Id)
-        .OrderByDescending(r => r.Data)
-        .Select(r => new
+        if (user == null)
         {
-            data = r.Data
-                .ToString("dd/MM/yyyy"),
+            return Unauthorized();
+        }
 
-            entrada = r.Entrada != null
-                ? r.Entrada.Value
-                    .ToLocalTime()
-                    .ToString("HH:mm")
-                : "",
+        var registros = _context.RegistrosPonto
+            .Where(r => r.UserId == user.Id)
+            .OrderByDescending(r => r.Data)
+            .Select(r => new
+            {
+                data = r.Data
+                    .ToString("dd/MM/yyyy"),
 
-            saida = r.Saida != null
-                ? r.Saida.Value
-                    .ToLocalTime()
-                    .ToString("HH:mm")
-                : "",
+                entrada = r.Entrada != null
+                    ? r.Entrada.Value
+                        .ToLocalTime()
+                        .ToString("HH:mm")
+                    : "",
 
-            horas =
+                saida = r.Saida != null
+                    ? r.Saida.Value
+                        .ToLocalTime()
+                        .ToString("HH:mm")
+                    : "",
+
+                horas =
+                    r.Entrada != null &&
+                    r.Saida != null
+                        ? FormatarDuracao(r.Saida.Value - r.Entrada.Value)
+                        : "00:00"
+            })
+            .ToList();
+
+        return Ok(registros);
+    }
+    [Authorize]
+    [HttpGet("resumo")]
+    public IActionResult Resumo()
+    {
+        var user = ObterUsuarioLogado();
+
+        if (user == null)
+        {
+            return Unauthorized();
+        }
+
+        var hoje = HojeLocal;
+
+        var registros = _context.RegistrosPonto
+            .Where(r =>
+                r.UserId == user.Id &&
+                r.Data.Month == hoje.Month &&
+                r.Data.Year == hoje.Year
+            )
+            .ToList();
+
+        var totalMinutos = registros
+            .Where(r =>
                 r.Entrada != null &&
                 r.Saida != null
-                    ? FormatarDuracao(r.Saida.Value - r.Entrada.Value)
-                    : "00:00"
-        })
-        .ToList();
+            )
+            .Sum(r =>
+                (r.Saida!.Value - r.Entrada!.Value)
+                .TotalMinutes
+            );
 
-    return Ok(registros);
-}
-[Authorize]
-[HttpGet("resumo")]
-public IActionResult Resumo()
-{
-    var user = ObterUsuarioLogado();
+        var horas = (int)totalMinutos / 60;
 
-    if (user == null)
-    {
-        return Unauthorized();
+        var minutos = (int)totalMinutos % 60;
+
+        var registroAberto =
+            registros.FirstOrDefault(r =>
+                r.Data.Date == hoje.Date &&
+                r.Entrada != null &&
+                r.Saida == null
+            );
+
+        var trabalhandoAgora = registroAberto != null;
+
+        return Ok(new
+        {
+            totalHoras =
+                $"{horas:D2}:{minutos:D2}",
+
+            totalRegistros =
+                registros.Count,
+
+            trabalhandoAgora,
+
+            inicioExpediente =
+                registroAberto?.Entrada != null
+                    ? registroAberto.Entrada.Value.ToLocalTime().ToString("yyyy-MM-ddTHH:mm:ss")
+                    : null
+        });
     }
-
-    var hoje = HojeLocal;
-
-    var registros = _context.RegistrosPonto
-        .Where(r =>
-            r.UserId == user.Id &&
-            r.Data.Month == hoje.Month &&
-            r.Data.Year == hoje.Year
-        )
-        .ToList();
-
-    var totalMinutos = registros
-        .Where(r =>
-            r.Entrada != null &&
-            r.Saida != null
-        )
-        .Sum(r =>
-            (r.Saida!.Value - r.Entrada!.Value)
-            .TotalMinutes
-        );
-
-    var horas = (int)totalMinutos / 60;
-
-    var minutos = (int)totalMinutos % 60;
-
-    var registroAberto =
-        registros.FirstOrDefault(r =>
-            r.Data.Date == hoje.Date &&
-            r.Entrada != null &&
-            r.Saida == null
-        );
-
-    var trabalhandoAgora = registroAberto != null;
-
-    return Ok(new
-    {
-        totalHoras =
-            $"{horas:D2}:{minutos:D2}",
-
-        totalRegistros =
-            registros.Count,
-
-        trabalhandoAgora,
-
-        inicioExpediente =
-            registroAberto?.Entrada != null
-                ? registroAberto.Entrada.Value.ToLocalTime().ToString("yyyy-MM-ddTHH:mm:ss")
-                : null
-    });
-}
 
 }
