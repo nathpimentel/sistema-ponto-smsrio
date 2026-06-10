@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using backend.data;
 using Microsoft.OpenApi.Models;
 using backend.services;
+using backend.middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -94,6 +95,8 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.Migrate();
 }
+
+app.UseMiddleware<ExceptionHandlerMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
