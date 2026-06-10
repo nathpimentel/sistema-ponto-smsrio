@@ -59,6 +59,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 );
 
 builder.Services.AddScoped<PdfService>();
+builder.Services.AddHostedService<TokenLimpezaService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
